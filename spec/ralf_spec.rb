@@ -5,7 +5,7 @@ require 'ralf'
 describe Ralf do
 
   before(:each) do
-    @default_params = {:config => File.dirname(__FILE__) + '/fixtures/config.yaml'}
+    @default_params = {:config => File.dirname(__FILE__) + '/fixtures/config.yaml', :date => '2010-02-10'}
   end
 
   it "should initialize properly" do
@@ -58,9 +58,10 @@ describe Ralf do
     before(:each) do
       @ralf = Ralf.new(@default_params)
       @bucket1 = {:name => 'bucket1'}
-      @bucket1.should_receive(:logging_info).once.and_return({ :enabled => true })
+      @bucket1.should_receive(:logging_info).any_number_of_times.and_return({ :enabled => true, :targetprefix => "log/" })
       @bucket2 = {:name => 'bucket2'}
-      @bucket2.should_receive(:logging_info).once.and_return({ :enabled => false })
+      @bucket2.should_receive(:logging_info).any_number_of_times.and_return({ :enabled => false, :targetprefix => "log/" })
+      @bucket1.should_receive(:name).any_number_of_times.and_return('media.kerdienstgemist.nl')
     end
 
     it "should find buckets with logging enabled" do
@@ -71,11 +72,31 @@ describe Ralf do
     end
 
     it "should save logging to disk" do
-      @key1 = {:name => '2010-02-10-00-05-32-ZDRFGTCKUYVJCT'}
-      @key2 = {:name => '2010-02-10-00-07-28-EFREUTERGRSGDH'}
-      @bucket1.should_receive(:name).once.and_return('media.kerdienstgemist.nl')
-      @bucket1.should_receive(:keys).once.and_return([@key1, @key2])
-      @ralf.save_logging_to_disk(@bucket1).should eql(true)
+      @key1 = {:name => 'log/2010-02-10-00-05-32-ZDRFGTCKUYVJCT', :data => 'This is content'}
+      @key2 = {:name => 'log/2010-02-10-00-07-28-EFREUTERGRSGDH', :data => 'This is content'}
+      @bucket1.should_receive(:keys).any_number_of_times.and_return([@key1, @key2])
+      @key1.should_receive(:name).any_number_of_times.and_return(@key1[:name])
+      @key2.should_receive(:name).any_number_of_times.and_return(@key2[:name])
+      @key1.should_receive(:data).any_number_of_times.and_return(@key1[:data])
+      @key2.should_receive(:data).any_number_of_times.and_return(@key2[:data])
+      File.should_receive(:makedirs).twice.and_return(true)
+      File.should_receive(:exists?).twice.and_return(false, true)
+      File.should_receive(:open).once.and_return(true)
+
+      @ralf.save_logging_to_disk(@bucket1).should eql([@key1, @key2])
+    end
+
+    it "should merge all logs" do
+      Dir.should_receive(:glob).with('/Users/berl/S3/media.kerdienstgemist.nl/log/2010-02-10*').and_return(
+          ['/Users/berl/S3/media.kerdienstgemist.nl/log/2010-02-10-00-05-32-ZDRFGTCKUYVJCT',
+           '/Users/berl/S3/media.kerdienstgemist.nl/log/2010-02-10-00-07-28-EFREUTERGRSGDH'])
+      File.should_receive(:open).with('/Users/berl/S3/s3_combined_media.kerdienstgemist.nl_2010-02-10.alf', "w").and_return(File)
+      LogMerge::Merger.should_receive(:merge).with(
+        File, 
+        '/Users/berl/S3/media.kerdienstgemist.nl/log/2010-02-10-00-05-32-ZDRFGTCKUYVJCT',
+        '/Users/berl/S3/media.kerdienstgemist.nl/log/2010-02-10-00-07-28-EFREUTERGRSGDH'
+      ).and_return(true)
+      @ralf.merge_to_combined(@bucket1)
     end
 
   end
