@@ -1,0 +1,7 @@
+10.34.211.35 - F7CECCD7A21B4B96 [10/Feb/2010:07:16:19 +0000] "GET /?acl HTTP/1.1" 200 - 1384 - 456 - "-" "Jakarta Commons-HttpClient/3.0" -
+10.34.211.35 - E415BCEA05AFB84F [10/Feb/2010:07:16:19 +0000] "POST /soap/ HTTP/1.1" 200 - 797 1003 74 41 "-" "Axis/1.3" -
+10.36.142.18 - BE89D3B6953D719E [10/Feb/2010:07:16:28 +0000] "GET /?acl HTTP/1.1" 200 - 1384 - 433 - "-" "Jakarta Commons-HttpClient/3.0" -
+10.36.142.18 - E15F489437E852EA [10/Feb/2010:07:16:28 +0000] "POST /soap/ HTTP/1.1" 200 - 797 954 36 14 "-" "Axis/1.3" -
+10.32.219.38 - 784FD457838EFF42 [10/Feb/2010:07:17:01 +0000] "GET /?acl HTTP/1.1" 200 - 1384 - 399 - "-" "Jakarta Commons-HttpClient/3.0" -
+10.32.219.38 - 6E239BC5A4AC757C [10/Feb/2010:07:17:02 +0000] "POST /soap/ HTTP/1.1" 200 - 797 686 63 31 "-" "Axis/1.3" -
+10.217.37.15 - 0B76C90B3634290B [10/Feb/2010:07:24:40 +0000] "GET /?acl HTTP/1.1" 307 TemporaryRedirect 488 - 7 - "-" "Jakarta Commons-HttpClient/3.0" -

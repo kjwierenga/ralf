@@ -37,10 +37,11 @@ class Ralf
 
     find_buckets_with_logging
 
-    # @buckets_with_logging.each  do |bucket|
-    #   save_logging_to_disk(bucket)
-    #   merge_to_combined(bucket)
-    # end
+    @buckets_with_logging.each  do |bucket|
+      save_logging_to_disk(bucket)
+      merge_to_combined(bucket)
+      convert_alt_to_clf(bucket)
+    end
   end
 
   # Finds all buckets (in scope of provided credentials) which have logging enabled
@@ -70,8 +71,20 @@ class Ralf
   # merge all files just downloaded for date to 1 combined file
   def merge_to_combined(bucket)
     in_files = Dir.glob( File.join(@config[:out_path], bucket.name, bucket.logging_info[:targetprefix], "#{date}*"))
-    out_file = File.open(File.join(@config[:out_path], output_file_name(bucket)), 'w')
-    LogMerge::Merger.merge out_file, *in_files
+    File.open(File.join(@config[:out_path], output_alf_file_name(bucket)), 'w') do |out_file|
+      LogMerge::Merger.merge out_file, *in_files
+    end
+  end
+
+  # Convert Amazon log files to Apache CLF
+  def convert_alt_to_clf(bucket)
+    out_file = File.open(File.join(@config[:out_path], output_clf_file_name(bucket)), 'w')
+    File.open(File.join(@config[:out_path], output_alf_file_name(bucket)), 'r') do |in_file|
+      while (line = in_file.gets)
+        out_file.puts(translate_to_clf(line))
+      end
+    end
+    out_file.close
   end
 
   def date
@@ -86,22 +99,37 @@ class Ralf
     end
   end
 
+  def translate_to_clf(line)
+    if line =~ AMAZON_LOG_FORMAT
+      # host, date, ip, acl, request, status, bytes, agent = $2, $3, $4, $5, $9, $10, $12, $17
+      "%s - %s [%s] \"%s\" %d %s \"%s\" \"%s\"" % [$4, $5, $3, $9, $10, $12, $16, $17]
+    else
+      "# ERROR: #{line}"
+    end
+  end
+
 protected
-  def output_file_name(bucket)
+
+  def output_alf_file_name(bucket)
     "%s_%s_%s.alf" % [@config[:out_prefix] || "s3_combined", bucket.name, date]
+  end
+
+  def output_clf_file_name(bucket)
+    "%s_%s_%s.log" % [@config[:out_prefix] || "s3_combined", bucket.name, date]
   end
 
   def read_preferences(config_file, params = {})
     unless config_file
       DEFAULT_PREFERENCES.each do |file|
-        if File.exists?( file )
-          config_file = file
+        expanded_file = File.expand_path( file ) 
+        if File.exists?( expanded_file )
+          config_file = expanded_file
         end
       end
     end
 
-    if config_file && File.exists?(config_file)
-      @config = YAML.load_file( config_file ).merge(params)
+    if config_file && File.exists?( File.expand_path(config_file) )
+      @config = YAML.load_file( File.expand_path(config_file) ).merge(params)
     elsif params.size > 0
       @config = params
     else

@@ -29,6 +29,23 @@ describe Ralf do
       # ralf.config.should eql({:aws_access_key_id => 'access_key', :aws_secret_access_key => 'secret'})
     end
 
+    it "should look for default configurations" do
+      File.should_receive(:expand_path).once.with('~/.ralf.yaml').and_return('/Users/berl/.ralf.yaml')
+      File.should_receive(:expand_path).twice.with('/Users/berl/.ralf.yaml').and_return('/Users/berl/.ralf.yaml')
+      File.should_receive(:expand_path).once.with('/etc/ralf.yaml').and_return('/etc/ralf.yaml')
+      File.should_receive(:exists?).once.with('').and_return(false)
+      File.should_receive(:exists?).once.with('/etc/ralf.yaml').and_return(false)
+      File.should_receive(:exists?).twice.with('/Users/berl/.ralf.yaml').and_return(true)
+      YAML.should_receive(:load_file).with('/Users/berl/.ralf.yaml').and_return({
+        :aws_access_key_id      => 'access_key',
+        :aws_secret_access_key  => 'secret',
+        :out_path               => '/Users/berl/S3',
+        :out_prefix             => 's3_combined'
+      })
+
+      ralf = Ralf.new()
+    end
+
   end
 
   describe "Date handling" do
@@ -59,9 +76,9 @@ describe Ralf do
       @ralf = Ralf.new(@default_params)
       @bucket1 = {:name => 'bucket1'}
       @bucket1.should_receive(:logging_info).any_number_of_times.and_return({ :enabled => true, :targetprefix => "log/" })
+      @bucket1.should_receive(:name).any_number_of_times.and_return('media.kerdienstgemist.nl')
       @bucket2 = {:name => 'bucket2'}
       @bucket2.should_receive(:logging_info).any_number_of_times.and_return({ :enabled => false, :targetprefix => "log/" })
-      @bucket1.should_receive(:name).any_number_of_times.and_return('media.kerdienstgemist.nl')
     end
 
     it "should find buckets with logging enabled" do
@@ -87,16 +104,59 @@ describe Ralf do
     end
 
     it "should merge all logs" do
+      out_string = StringIO.new
+
       Dir.should_receive(:glob).with('/Users/berl/S3/media.kerdienstgemist.nl/log/2010-02-10*').and_return(
           ['/Users/berl/S3/media.kerdienstgemist.nl/log/2010-02-10-00-05-32-ZDRFGTCKUYVJCT',
            '/Users/berl/S3/media.kerdienstgemist.nl/log/2010-02-10-00-07-28-EFREUTERGRSGDH'])
-      File.should_receive(:open).with('/Users/berl/S3/s3_combined_media.kerdienstgemist.nl_2010-02-10.alf', "w").and_return(File)
+
+      File.should_receive(:open).with('/Users/berl/S3/s3_combined_media.kerdienstgemist.nl_2010-02-10.alf', "w").and_yield(out_string)
+
       LogMerge::Merger.should_receive(:merge).with(
-        File, 
+        out_string, 
         '/Users/berl/S3/media.kerdienstgemist.nl/log/2010-02-10-00-05-32-ZDRFGTCKUYVJCT',
         '/Users/berl/S3/media.kerdienstgemist.nl/log/2010-02-10-00-07-28-EFREUTERGRSGDH'
-      ).and_return(true)
+      )
+
       @ralf.merge_to_combined(@bucket1)
+
+      out_string.string.should eql('')
+    end
+
+  end
+
+  describe "Conversion" do
+
+    before(:each) do
+      @ralf = Ralf.new(@default_params)
+      @bucket1 = {:name => 'bucket1'}
+      @bucket1.should_receive(:name).any_number_of_times.and_return('media.kerdienstgemist.nl')
+    end
+
+    it "should convert the alf to clf" do
+      File.should_receive(:open).once.with("/Users/berl/S3/s3_combined_media.kerdienstgemist.nl_2010-02-10.log", "w").and_return(File)
+      File.should_receive(:open).once.with("/Users/berl/S3/s3_combined_media.kerdienstgemist.nl_2010-02-10.alf", "r").and_return(File)
+      File.should_receive(:close).once.and_return(true)
+      @ralf.convert_alt_to_clf(@bucket1).should eql(true)
+    end
+
+    it "should find the proper values in a line" do
+      [ [
+        '2cf7e6b06335c0689c6d29163df5bb001c96870cd78609e3845f1ed76a632621 assets.staging.kerkdienstgemist.nl [10/Feb/2010:07:17:01 +0000] 10.32.219.38 3272ee65a908a7677109fedda345db8d9554ba26398b2ca10581de88777e2b61 784FD457838EFF42 REST.GET.ACL - "GET /?acl HTTP/1.1" 200 - 1384 - 399 - "-" "Jakarta Commons-HttpClient/3.0" -                        ',
+        '10.32.219.38 - 3272ee65a908a7677109fedda345db8d9554ba26398b2ca10581de88777e2b61 [10/Feb/2010:07:17:01 +0000] "GET /?acl HTTP/1.1" 200 1384 "-" "Jakarta Commons-HttpClient/3.0"'
+      ],[
+        '2cf7e6b06335c0689c6d29163df5bb001c96870cd78609e3845f1ed76a632621 assets.staging.kerkdienstgemist.nl [10/Feb/2010:07:17:02 +0000] 10.32.219.38 3272ee65a908a7677109fedda345db8d9554ba26398b2ca10581de88777e2b61 6E239BC5A4AC757C SOAP.PUT.OBJECT logs/2010-02-10-07-17-02-F6EFD00DAB9A08B6 "POST /soap/ HTTP/1.1" 200 - 797 686 63 31 "-" "Axis/1.3" -',
+        '10.32.219.38 - 3272ee65a908a7677109fedda345db8d9554ba26398b2ca10581de88777e2b61 [10/Feb/2010:07:17:02 +0000] "POST /soap/ HTTP/1.1" 200 797 "-" "Axis/1.3"'
+      ],[
+        '2cf7e6b06335c0689c6d29163df5bb001c96870cd78609e3845f1ed76a632621 assets.staging.kerkdienstgemist.nl [10/Feb/2010:07:24:40 +0000] 10.217.37.15 - 0B76C90B3634290B REST.GET.ACL - "GET /?acl HTTP/1.1" 307 TemporaryRedirect 488 - 7 - "-" "Jakarta Commons-HttpClient/3.0" -                                                                          ',
+        '10.217.37.15 - - [10/Feb/2010:07:24:40 +0000] "GET /?acl HTTP/1.1" 307 488 "-" "Jakarta Commons-HttpClient/3.0"'
+      ] ].each do |alf,clf|
+        @ralf.translate_to_clf(alf).should eql(clf)
+      end
+    end
+
+    it "should mark invalid lines with '# ERROR: '" do
+      @ralf.translate_to_clf('An invalid line in the logfile').should match(/^# ERROR/)
     end
 
   end
