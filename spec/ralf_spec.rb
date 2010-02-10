@@ -46,6 +46,19 @@ describe Ralf do
       ralf = Ralf.new()
     end
 
+    it "should description" do
+      ENV['AWS_ACCESS_KEY_ID']     = 'access_key'
+      ENV['AWS_SECRET_ACCESS_KEY'] = 'secret'
+      File.should_receive(:exists?).once.with('').and_return(false)
+      File.should_receive(:exists?).once.with('/etc/ralf.yaml').and_return(false)
+      File.should_receive(:exists?).once.with('/Users/berl/.ralf.yaml').and_return(false)
+
+      lambda {
+        Ralf.new(:out_path => '/Users/berl/S3')
+      }.should_not raise_error(Ralf::ConfigIncomplete)
+
+    end
+
   end
 
   describe "Date handling" do
