@@ -13,9 +13,16 @@ Prerequirements:
 
 Execution:
 
-    Ralf.new(:config => '/my/config.yaml', :date => '2010-02-01')
+    r = Ralf.new(:config => '/my/config.yaml', :date => '2010-02-01')
+    r.run
+
+Or run it in one go:
+
+    Ralf.run(:config => '/my/config.yaml', :date => '2010-02-01')
+
 
 Parameters:
+----------
 
     :config   a YAML config file, if none given it tries to open /etc/ralf.yaml or ~/.ralf.yaml
     :date     the date to parse
@@ -38,6 +45,7 @@ More info: [S3 Server Access Logging](http://docs.amazonwebservices.com/AmazonS3
 TODO
 ====
 
+* CLI executable
 * Grouping/combinig on week/month
 
 Credits:

@@ -35,9 +35,16 @@ class Ralf
 
     @s3 = RightAws::S3.new(@config[:aws_access_key_id], @config[:aws_secret_access_key]) 
 
-    find_buckets_with_logging
+  end
 
-    @buckets_with_logging.each  do |bucket|
+  def self.run(*args)
+    ralf = Ralf.new(*args)
+    ralf.run
+  end
+
+  def run
+    find_buckets_with_logging
+    @buckets_with_logging.each do |bucket|
       save_logging_to_disk(bucket)
       merge_to_combined(bucket)
       convert_alt_to_clf(bucket)

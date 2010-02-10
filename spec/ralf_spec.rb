@@ -33,7 +33,6 @@ describe Ralf do
       File.should_receive(:expand_path).once.with('~/.ralf.yaml').and_return('/Users/berl/.ralf.yaml')
       File.should_receive(:expand_path).twice.with('/Users/berl/.ralf.yaml').and_return('/Users/berl/.ralf.yaml')
       File.should_receive(:expand_path).once.with('/etc/ralf.yaml').and_return('/etc/ralf.yaml')
-      File.should_receive(:exists?).once.with('').and_return(false)
       File.should_receive(:exists?).once.with('/etc/ralf.yaml').and_return(false)
       File.should_receive(:exists?).twice.with('/Users/berl/.ralf.yaml').and_return(true)
       YAML.should_receive(:load_file).with('/Users/berl/.ralf.yaml').and_return({
@@ -46,10 +45,9 @@ describe Ralf do
       ralf = Ralf.new()
     end
 
-    it "should description" do
+    it "should use AWS credentials provided in ENV" do
       ENV['AWS_ACCESS_KEY_ID']     = 'access_key'
       ENV['AWS_SECRET_ACCESS_KEY'] = 'secret'
-      File.should_receive(:exists?).once.with('').and_return(false)
       File.should_receive(:exists?).once.with('/etc/ralf.yaml').and_return(false)
       File.should_receive(:exists?).once.with('/Users/berl/.ralf.yaml').and_return(false)
 
