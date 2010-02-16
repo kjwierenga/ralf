@@ -47,6 +47,8 @@ TODO
 
 * CLI executable
 * Grouping/combinig on week/month
+* Give a date range c.q. a month
+* Option to archive/compress original logs
 
 Credits:
 ========

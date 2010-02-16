@@ -62,7 +62,7 @@ describe Ralf do
   describe "Date handling" do
 
     it "should set the date to today" do
-      ralf = Ralf.new(@default_params)
+      ralf = Ralf.new()
       date = Date.today
       ralf.date.should  eql("%4d-%02d-%02d" % [date.year, date.month, date.day])
     end
@@ -74,9 +74,19 @@ describe Ralf do
 
     it "should raise error when invalid date given" do
       lambda {
-        ralf = Ralf.new(@default_params.merge(:date => 'now'))
+        ralf = Ralf.new(@default_params.merge(:date => 'someday'))
         ralf.date.should  be_nil
       }.should raise_error(ArgumentError, "invalid date")
+    end
+
+    xit "should accept a range of dates" do
+      ralf = Ralf.new(@default_params.merge(:date => 'now'))
+      ralf.date.should  be_nil
+    end
+
+    xit "should accept a month and convert it to a date" do
+      ralf = Ralf.new(@default_params.merge(:date => 'januari'))
+      ralf.date.should  be_nil
     end
 
   end
@@ -86,10 +96,11 @@ describe Ralf do
     before(:each) do
       @ralf = Ralf.new(@default_params)
       @bucket1 = {:name => 'bucket1'}
-      @bucket1.should_receive(:logging_info).any_number_of_times.and_return({ :enabled => true, :targetprefix => "log/" })
+      @bucket1.should_receive(:logging_info).any_number_of_times.and_return({ :enabled => true, :targetprefix => "log/access_log-" })
       @bucket1.should_receive(:name).any_number_of_times.and_return('media.kerdienstgemist.nl')
       @bucket2 = {:name => 'bucket2'}
       @bucket2.should_receive(:logging_info).any_number_of_times.and_return({ :enabled => false, :targetprefix => "log/" })
+      @bucket2.should_receive(:name).any_number_of_times.and_return('media.kerdienstgemist.nl')
     end
 
     it "should find buckets with logging enabled" do
@@ -100,16 +111,16 @@ describe Ralf do
     end
 
     it "should save logging to disk" do
-      @key1 = {:name => 'log/2010-02-10-00-05-32-ZDRFGTCKUYVJCT', :data => 'This is content'}
-      @key2 = {:name => 'log/2010-02-10-00-07-28-EFREUTERGRSGDH', :data => 'This is content'}
+      @key1 = {:name => 'log/access_log-2010-02-10-00-05-32-ZDRFGTCKUYVJCT', :data => 'This is content'}
+      @key2 = {:name => 'log/access_log-2010-02-10-00-07-28-EFREUTERGRSGDH', :data => 'This is content'}
       @bucket1.should_receive(:keys).any_number_of_times.and_return([@key1, @key2])
       @key1.should_receive(:name).any_number_of_times.and_return(@key1[:name])
       @key2.should_receive(:name).any_number_of_times.and_return(@key2[:name])
       @key1.should_receive(:data).any_number_of_times.and_return(@key1[:data])
       @key2.should_receive(:data).any_number_of_times.and_return(@key2[:data])
-      File.should_receive(:makedirs).twice.and_return(true)
+      File.should_receive(:makedirs).twice.with('/Users/berl/S3/media.kerdienstgemist.nl/log').and_return(true)
       File.should_receive(:exists?).twice.and_return(false, true)
-      File.should_receive(:open).once.and_return(true)
+      File.should_receive(:open).once.with('/Users/berl/S3/media.kerdienstgemist.nl/log/access_log-2010-02-10-00-05-32-ZDRFGTCKUYVJCT', "w").and_return(true)
 
       @ralf.save_logging_to_disk(@bucket1).should eql([@key1, @key2])
     end
@@ -117,21 +128,26 @@ describe Ralf do
     it "should merge all logs" do
       out_string = StringIO.new
 
-      Dir.should_receive(:glob).with('/Users/berl/S3/media.kerdienstgemist.nl/log/2010-02-10*').and_return(
-          ['/Users/berl/S3/media.kerdienstgemist.nl/log/2010-02-10-00-05-32-ZDRFGTCKUYVJCT',
-           '/Users/berl/S3/media.kerdienstgemist.nl/log/2010-02-10-00-07-28-EFREUTERGRSGDH'])
+      Dir.should_receive(:glob).with('/Users/berl/S3/media.kerdienstgemist.nl/log/access_log-2010-02-10*').and_return(
+          ['/Users/berl/S3/media.kerdienstgemist.nl/log/access_log-2010-02-10-00-05-32-ZDRFGTCKUYVJCT',
+           '/Users/berl/S3/media.kerdienstgemist.nl/log/access_log-2010-02-10-00-07-28-EFREUTERGRSGDH'])
 
       File.should_receive(:open).with('/Users/berl/S3/s3_combined_media.kerdienstgemist.nl_2010-02-10.alf', "w").and_yield(out_string)
 
       LogMerge::Merger.should_receive(:merge).with(
         out_string, 
-        '/Users/berl/S3/media.kerdienstgemist.nl/log/2010-02-10-00-05-32-ZDRFGTCKUYVJCT',
-        '/Users/berl/S3/media.kerdienstgemist.nl/log/2010-02-10-00-07-28-EFREUTERGRSGDH'
+        '/Users/berl/S3/media.kerdienstgemist.nl/log/access_log-2010-02-10-00-05-32-ZDRFGTCKUYVJCT',
+        '/Users/berl/S3/media.kerdienstgemist.nl/log/access_log-2010-02-10-00-07-28-EFREUTERGRSGDH'
       )
 
       @ralf.merge_to_combined(@bucket1)
 
       out_string.string.should eql('')
+    end
+
+    it "should save logs which have a targetprefix containing a '/'" do
+      @ralf.local_log_dirname(@bucket1).should  eql('/Users/berl/S3/media.kerdienstgemist.nl/log')
+      @ralf.local_log_dirname(@bucket2).should  eql('/Users/berl/S3/media.kerdienstgemist.nl/log')
     end
 
   end

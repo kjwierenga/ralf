@@ -64,12 +64,12 @@ class Ralf
   # Saves files to disk if they do not exists yet
   def save_logging_to_disk(bucket)
     bucket.keys(:prefix => "%s%s" % [bucket.logging_info[:targetprefix], date]).each do |key|
-      File.makedirs(File.expand_path(File.join(@config[:out_path], bucket.name, bucket.logging_info[:targetprefix])))
-      log_file = File.expand_path(File.join(@config[:out_path], bucket.name, key.name))
+      File.makedirs(local_log_dirname(bucket))
+      log_file = File.expand_path(File.join(local_log_dirname(bucket), local_log_file_basename(bucket, key)))
       if File.exists?(log_file)
-        puts "File exists #{log_file}"
+        puts "File exists #{log_file}" if ENV['DEBUG']
       else
-        puts "Writing #{log_file}"
+        puts "Writing #{log_file}" if ENV['DEBUG']
         File.open(log_file, 'w') { |f| f.write(key.data) }
       end
     end
@@ -77,7 +77,7 @@ class Ralf
 
   # merge all files just downloaded for date to 1 combined file
   def merge_to_combined(bucket)
-    in_files = Dir.glob( File.join(@config[:out_path], bucket.name, bucket.logging_info[:targetprefix], "#{date}*"))
+    in_files = Dir.glob(log_globber(bucket, date))
     File.open(File.join(@config[:out_path], output_alf_file_name(bucket)), 'w') do |out_file|
       LogMerge::Merger.merge out_file, *in_files
     end
@@ -115,7 +115,24 @@ class Ralf
     end
   end
 
+  def local_log_file_basename(bucket, key)
+    "%s%s" % [bucket.logging_info[:targetprefix].split('/').last, key.name.gsub(bucket.logging_info[:targetprefix], '')]
+  end
+
+  def local_log_dirname(bucket)
+    if bucket.logging_info[:targetprefix] =~ /\/$/
+      log_dir = "%s/%s" % [bucket.name, bucket.logging_info[:targetprefix].gsub(/\/$/,'')]
+    else
+      log_dir = File.dirname("%s/%s" % [bucket.name, bucket.logging_info[:targetprefix]])
+    end
+    File.expand_path(File.join(@config[:out_path], log_dir))
+  end
+
 protected
+
+  def log_globber(bucket, globber)
+    "%s/%s/%s%s*" % [@config[:out_path], bucket.name, bucket.logging_info[:targetprefix], globber]
+  end
 
   def output_alf_file_name(bucket)
     "%s_%s_%s.alf" % [@config[:out_prefix] || "s3_combined", bucket.name, date]
@@ -149,4 +166,5 @@ protected
       @config[:out_path]
     )
   end
+
 end
