@@ -5,7 +5,11 @@ require 'ralf'
 describe Ralf do
 
   before(:each) do
-    @default_params = {:config => File.dirname(__FILE__) + '/fixtures/config.yaml', :date => '2010-02-10'}
+    @default_params = {
+      :config => File.dirname(__FILE__) + '/fixtures/config.yaml',
+      :out_seperator => ':year/:month/:day',
+      :date => '2010-02-10'
+    }
   end
 
   it "should initialize properly" do
@@ -118,9 +122,9 @@ describe Ralf do
       @key2.should_receive(:name).any_number_of_times.and_return(@key2[:name])
       @key1.should_receive(:data).any_number_of_times.and_return(@key1[:data])
       @key2.should_receive(:data).any_number_of_times.and_return(@key2[:data])
-      File.should_receive(:makedirs).twice.with('/Users/berl/S3/media.kerdienstgemist.nl/log').and_return(true)
+      File.should_receive(:makedirs).twice.with('/Users/berl/S3/media.kerdienstgemist.nl/log/2010/02/10').and_return(true)
       File.should_receive(:exists?).twice.and_return(false, true)
-      File.should_receive(:open).once.with('/Users/berl/S3/media.kerdienstgemist.nl/log/access_log-2010-02-10-00-05-32-ZDRFGTCKUYVJCT', "w").and_return(true)
+      File.should_receive(:open).once.with('/Users/berl/S3/media.kerdienstgemist.nl/log/2010/02/10/access_log-2010-02-10-00-05-32-ZDRFGTCKUYVJCT', "w").and_return(true)
 
       @ralf.save_logging_to_disk(@bucket1).should eql([@key1, @key2])
     end
@@ -128,16 +132,16 @@ describe Ralf do
     it "should merge all logs" do
       out_string = StringIO.new
 
-      Dir.should_receive(:glob).with('/Users/berl/S3/media.kerdienstgemist.nl/log/access_log-2010-02-10*').and_return(
-          ['/Users/berl/S3/media.kerdienstgemist.nl/log/access_log-2010-02-10-00-05-32-ZDRFGTCKUYVJCT',
-           '/Users/berl/S3/media.kerdienstgemist.nl/log/access_log-2010-02-10-00-07-28-EFREUTERGRSGDH'])
+      Dir.should_receive(:glob).with('/Users/berl/S3/media.kerdienstgemist.nl/log/2010/02/10/access_log-2010-02-10*').and_return(
+          ['/Users/berl/S3/media.kerdienstgemist.nl/log/2010/02/10/access_log-2010-02-10-00-05-32-ZDRFGTCKUYVJCT',
+           '/Users/berl/S3/media.kerdienstgemist.nl/log/2010/02/10/access_log-2010-02-10-00-07-28-EFREUTERGRSGDH'])
 
       File.should_receive(:open).with('/Users/berl/S3/s3_combined_media.kerdienstgemist.nl_2010-02-10.alf', "w").and_yield(out_string)
 
       LogMerge::Merger.should_receive(:merge).with(
         out_string, 
-        '/Users/berl/S3/media.kerdienstgemist.nl/log/access_log-2010-02-10-00-05-32-ZDRFGTCKUYVJCT',
-        '/Users/berl/S3/media.kerdienstgemist.nl/log/access_log-2010-02-10-00-07-28-EFREUTERGRSGDH'
+        '/Users/berl/S3/media.kerdienstgemist.nl/log/2010/02/10/access_log-2010-02-10-00-05-32-ZDRFGTCKUYVJCT',
+        '/Users/berl/S3/media.kerdienstgemist.nl/log/2010/02/10/access_log-2010-02-10-00-07-28-EFREUTERGRSGDH'
       )
 
       @ralf.merge_to_combined(@bucket1)
@@ -146,16 +150,14 @@ describe Ralf do
     end
 
     it "should save logs which have a targetprefix containing a '/'" do
-      @ralf.local_log_dirname(@bucket1).should  eql('/Users/berl/S3/media.kerdienstgemist.nl/log')
-      @ralf.local_log_dirname(@bucket2).should  eql('/Users/berl/S3/media.kerdienstgemist.nl/log')
+      @ralf.local_log_dirname(@bucket1).should  eql('/Users/berl/S3/media.kerdienstgemist.nl/log/2010/02/10')
+      @ralf.local_log_dirname(@bucket2).should  eql('/Users/berl/S3/media.kerdienstgemist.nl/log/2010/02/10')
     end
 
     it "should save to a subdir when a out_seperator is given" do
-
-      @ralf = Ralf.new(@default_params.merge(:out_seperator => ':year/:month/:day', :date => '2010-02-10'))
       @ralf.local_log_dirname(@bucket1).should  eql('/Users/berl/S3/media.kerdienstgemist.nl/log/2010/02/10')
 
-      @ralf = Ralf.new(@default_params.merge(:out_seperator => ':year/w:week', :date => '2010-02-10'))
+      @ralf.out_seperator = ':year/w:week'
       @ralf.local_log_dirname(@bucket1).should  eql('/Users/berl/S3/media.kerdienstgemist.nl/log/2010/w06')
     end
 

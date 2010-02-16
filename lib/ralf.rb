@@ -79,7 +79,7 @@ class Ralf
 
   # merge all files just downloaded for date to 1 combined file
   def merge_to_combined(bucket)
-    in_files = Dir.glob(log_globber(bucket, date))
+    in_files = Dir.glob(File.join(local_log_dirname(bucket), "#{local_log_file_basename_prefix(bucket)}#{date}*"))
     File.open(File.join(@config[:out_path], output_alf_file_name(bucket)), 'w') do |out_file|
       LogMerge::Merger.merge out_file, *in_files
     end
@@ -108,6 +108,20 @@ class Ralf
     end
   end
 
+  # Create a dynamic output folder
+  #  ex:  Ralf.new(:out_seperator => ':year/:month/:day')
+  def out_seperator
+    if @config[:out_seperator]
+      Ralf::Interpolation.interpolate(@date, @config[:out_seperator])
+    else
+      ''
+    end
+  end
+
+  def out_seperator=(out_seperator)
+    @config[:out_seperator] = out_seperator
+  end
+
   def translate_to_clf(line)
     if line =~ AMAZON_LOG_FORMAT
       # host, date, ip, acl, request, status, bytes, agent = $2, $3, $4, $5, $9, $10, $12, $17
@@ -115,10 +129,6 @@ class Ralf
     else
       "# ERROR: #{line}"
     end
-  end
-
-  def local_log_file_basename(bucket, key)
-    "%s%s" % [bucket.logging_info[:targetprefix].split('/').last, key.name.gsub(bucket.logging_info[:targetprefix], '')]
   end
 
   # locations of files for this bucket and date
@@ -131,20 +141,14 @@ class Ralf
     File.expand_path(File.join(@config[:out_path], log_dir, out_seperator))
   end
 
-  # Create a dynamic output folder
-  #  ex:  Ralf.new(:out_seperator => ':year/:month/:day')
-  def out_seperator
-    if @config[:out_seperator]
-      Ralf::Interpolation.interpolate(@date, @config[:out_seperator])
-    else
-      ''
-    end
-  end
-
 protected
 
-  def log_globber(bucket, globber)
-    "%s/%s/%s%s*" % [@config[:out_path], bucket.name, bucket.logging_info[:targetprefix], globber]
+  def local_log_file_basename(bucket, key)
+    "%s%s" % [local_log_file_basename_prefix(bucket), key.name.gsub(bucket.logging_info[:targetprefix], '')]
+  end
+
+  def local_log_file_basename_prefix(bucket)
+    bucket.logging_info[:targetprefix].split('/').last
   end
 
   def output_alf_file_name(bucket)
