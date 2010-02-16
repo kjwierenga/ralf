@@ -123,8 +123,9 @@ describe Ralf do
       @key1.should_receive(:data).any_number_of_times.and_return(@key1[:data])
       @key2.should_receive(:data).any_number_of_times.and_return(@key2[:data])
       File.should_receive(:makedirs).twice.with('/Users/berl/S3/media.kerdienstgemist.nl/log/2010/02/10').and_return(true)
-      File.should_receive(:exists?).twice.and_return(false, true)
-      File.should_receive(:open).once.with('/Users/berl/S3/media.kerdienstgemist.nl/log/2010/02/10/access_log-2010-02-10-00-05-32-ZDRFGTCKUYVJCT', "w").and_return(true)
+      File.should_receive(:exists?).once.with(  '/Users/berl/S3/media.kerdienstgemist.nl/log/2010/02/10/access_log-2010-02-10-00-07-28-EFREUTERGRSGDH').and_return(true)
+      File.should_receive(:exists?).once.with(  '/Users/berl/S3/media.kerdienstgemist.nl/log/2010/02/10/access_log-2010-02-10-00-05-32-ZDRFGTCKUYVJCT').and_return(false)
+      File.should_receive(:open).once.with(     '/Users/berl/S3/media.kerdienstgemist.nl/log/2010/02/10/access_log-2010-02-10-00-05-32-ZDRFGTCKUYVJCT', "w").and_return(true)
 
       @ralf.save_logging_to_disk(@bucket1).should eql([@key1, @key2])
     end
@@ -159,6 +160,18 @@ describe Ralf do
 
       @ralf.out_seperator = ':year/w:week'
       @ralf.local_log_dirname(@bucket1).should  eql('/Users/berl/S3/media.kerdienstgemist.nl/log/2010/w06')
+    end
+
+    it "should get the proper directories" do
+      @key.should_receive(:name).and_return('log/access_log-2010-02-10-00-05-32-ZDRFGTCKUYVJCT')
+      @ralf.local_log_file_basename_prefix(@bucket1).should   eql('access_log-')
+      @ralf.local_log_file_basename(@bucket1, @key).should    eql('access_log-2010-02-10-00-05-32-ZDRFGTCKUYVJCT')
+      @ralf.local_log_dirname(@bucket1).should                eql('/Users/berl/S3/media.kerdienstgemist.nl/log/2010/02/10')
+
+      @key.should_receive(:name).and_return('log/2010-02-10-00-05-32-ZDRFGTCKUYVJCT')
+      @ralf.local_log_file_basename_prefix(@bucket2).should   eql('')
+      @ralf.local_log_file_basename(@bucket2, @key).should    eql('2010-02-10-00-05-32-ZDRFGTCKUYVJCT')
+      @ralf.local_log_dirname(@bucket2).should                eql('/Users/berl/S3/media.kerdienstgemist.nl/log/2010/02/10')
     end
 
   end

@@ -141,15 +141,16 @@ class Ralf
     File.expand_path(File.join(@config[:out_path], log_dir, out_seperator))
   end
 
-protected
-
   def local_log_file_basename(bucket, key)
     "%s%s" % [local_log_file_basename_prefix(bucket), key.name.gsub(bucket.logging_info[:targetprefix], '')]
   end
 
   def local_log_file_basename_prefix(bucket)
+    return '' if bucket.logging_info[:targetprefix] =~ /\/$/
     bucket.logging_info[:targetprefix].split('/').last
   end
+
+protected
 
   def output_alf_file_name(bucket)
     "%s_%s_%s.alf" % [@config[:out_prefix] || "s3_combined", bucket.name, date]
