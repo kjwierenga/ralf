@@ -150,6 +150,15 @@ describe Ralf do
       @ralf.local_log_dirname(@bucket2).should  eql('/Users/berl/S3/media.kerdienstgemist.nl/log')
     end
 
+    it "should save to a subdir when a out_seperator is given" do
+
+      @ralf = Ralf.new(@default_params.merge(:out_seperator => ':year/:month/:day', :date => '2010-02-10'))
+      @ralf.local_log_dirname(@bucket1).should  eql('/Users/berl/S3/media.kerdienstgemist.nl/log/2010/02/10')
+
+      @ralf = Ralf.new(@default_params.merge(:out_seperator => ':year/w:week', :date => '2010-02-10'))
+      @ralf.local_log_dirname(@bucket1).should  eql('/Users/berl/S3/media.kerdienstgemist.nl/log/2010/w06')
+    end
+
   end
 
   describe "Conversion" do

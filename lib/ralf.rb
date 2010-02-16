@@ -2,6 +2,7 @@ require 'rubygems'
 require 'right_aws'
 require 'logmerge'
 require 'ftools'
+require 'ralf/interpolation'
 
 class Ralf
   class NoConfigFile < StandardError ; end
@@ -24,6 +25,7 @@ class Ralf
   #   :aws_secret_access_key  (required in config)
   #   :out_path               (required in config)
   #   :out_prefix             (optional, defaults to 's3_combined')
+  #   :out_seperator          (optional, defaults to nil) c.q. do we split directories
   # 
   # If the required params are given then there is no need to supply a config file
   def initialize(args = {})
@@ -119,13 +121,24 @@ class Ralf
     "%s%s" % [bucket.logging_info[:targetprefix].split('/').last, key.name.gsub(bucket.logging_info[:targetprefix], '')]
   end
 
+  # locations of files for this bucket and date
   def local_log_dirname(bucket)
     if bucket.logging_info[:targetprefix] =~ /\/$/
       log_dir = "%s/%s" % [bucket.name, bucket.logging_info[:targetprefix].gsub(/\/$/,'')]
     else
       log_dir = File.dirname("%s/%s" % [bucket.name, bucket.logging_info[:targetprefix]])
     end
-    File.expand_path(File.join(@config[:out_path], log_dir))
+    File.expand_path(File.join(@config[:out_path], log_dir, out_seperator))
+  end
+
+  # Create a dynamic output folder
+  #  ex:  Ralf.new(:out_seperator => ':year/:month/:day')
+  def out_seperator
+    if @config[:out_seperator]
+      Ralf::Interpolation.interpolate(@date, @config[:out_seperator])
+    else
+      ''
+    end
   end
 
 protected
