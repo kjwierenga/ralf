@@ -92,11 +92,18 @@ class Ralf
   end
 
   # Saves files to disk if they do not exists yet
-  def save_logging_to_local_disk(bucket, the_date)
+  def save_logging_to_local_disk(bucket, for_date)
 
-    search_string = "%s%s" % [bucket.logging_info[:targetprefix], the_date]
+    if bucket.name != bucket.logging_info[:targetbucket]
+      puts "logging for '%s' is on '%s'" % [bucket.name, bucket.logging_info[:targetbucket]] if ENV['DEBUG']
+      targetbucket = @s3.bucket(bucket.logging_info[:targetbucket])
+    else
+      targetbucket = bucket
+    end
 
-    bucket.keys(:prefix => search_string).each do |key|
+    search_string = "%s%s" % [bucket.logging_info[:targetprefix], for_date]
+
+    targetbucket.keys(:prefix => search_string).each do |key|
 
       File.makedirs(local_log_dirname(bucket))
       local_log_file = File.expand_path(File.join(local_log_dirname(bucket), local_log_file_basename(bucket, key)))

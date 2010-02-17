@@ -181,6 +181,16 @@ describe Ralf do
         @ralf.save_logging(@bucket1).class.should  eql(Range)
       end
 
+      it "should save logging if a different targetbucket is given" do
+        @ralf.s3.should_receive(:bucket).and_return(@bucket1)
+        @bucket3 = {:name => 'bucket3'}
+        @bucket3.should_receive(:logging_info).any_number_of_times.and_return({ :enabled => false, :targetprefix => "log/", :targetbucket => 'bucket1' })
+        @bucket3.should_receive(:name).any_number_of_times.and_return(@bucket3[:name])
+        @bucket1.should_receive(:keys).any_number_of_times.and_return([@key1, @key2])
+
+        @ralf.save_logging_to_local_disk(@bucket3, '2010-02-10').should eql([@key1, @key2])
+      end
+
     end
 
     it "should merge all logs" do
