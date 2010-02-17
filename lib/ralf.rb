@@ -68,13 +68,19 @@ class Ralf
     bucket.keys(:prefix => "%s%s" % [bucket.logging_info[:targetprefix], date]).each do |key|
       File.makedirs(local_log_dirname(bucket))
       log_file = File.expand_path(File.join(local_log_dirname(bucket), local_log_file_basename(bucket, key)))
+
       if File.exists?(log_file)
         puts "File exists #{log_file}" if ENV['DEBUG']
       else
         puts "Writing #{log_file}" if ENV['DEBUG']
         File.open(log_file, 'w') { |f| f.write(key.data) }
+        key.move(s3_organized_log_file(bucket, key)) if @config[:organize_originals]
       end
     end
+  end
+
+  def s3_organized_log_file(bucket, key)
+    File.join(log_dir(bucket), out_seperator, local_log_file_basename(bucket, key))
   end
 
   # merge all files just downloaded for date to 1 combined file
@@ -131,14 +137,18 @@ class Ralf
     end
   end
 
-  # locations of files for this bucket and date
-  def local_log_dirname(bucket)
+  def log_dir(bucket)
     if bucket.logging_info[:targetprefix] =~ /\/$/
       log_dir = "%s/%s" % [bucket.name, bucket.logging_info[:targetprefix].gsub(/\/$/,'')]
     else
       log_dir = File.dirname("%s/%s" % [bucket.name, bucket.logging_info[:targetprefix]])
     end
-    File.expand_path(File.join(@config[:out_path], log_dir, out_seperator))
+    log_dir
+  end
+
+  # locations of files for this bucket and date
+  def local_log_dirname(bucket)
+    File.expand_path(File.join(@config[:out_path], log_dir(bucket), out_seperator))
   end
 
   def local_log_file_basename(bucket, key)

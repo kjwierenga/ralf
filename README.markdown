@@ -12,13 +12,12 @@ Prerequirements:
 * Enable logging on S3 (use [cyberduck](http://cyberduck.ch/) for example)
 
 Execution:
-
-    r = Ralf.new(:config => '/my/config.yaml', :date => '2010-02-01')
+    r = Ralf.new(:config => '/my/config.yaml', :date => '2010-02-01', :out_seperator => ':year/:month/:day')
     r.run
 
 Or run it in one go:
 
-    Ralf.run(:config => '/my/config.yaml', :date => '2010-02-01')
+    Ralf.run(:config => '/my/config.yaml', :date => '2010-02-01', :out_seperator => ':year/:month/:day')
 
 
 Parameters:
@@ -31,6 +30,8 @@ Parameters:
     :aws_secret_access_key  (required in config)
     :out_path               (required in config)
     :out_prefix             (optional, defaults to 's3_combined') Prefix the output file
+    :out_seperator          (optional, defautl to '') specify directory seperators (e.g. ':year/:month/:day')
+    :organize_originals     (boolean, optional, organize asset on S3 in the same structure as :out_seperator)
 
 You can ommit a configuration file when you supply the required parameters __:aws\_access\_key\_id___, __:aws\_secret\_access\_key__ and __:out\_path__  
 They take precedence over the config file
