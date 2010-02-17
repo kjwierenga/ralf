@@ -135,7 +135,7 @@ class Ralf
   end
 
   def s3_organized_log_file(bucket, key)
-    File.join(log_dir(bucket), out_seperator, local_log_file_basename(bucket, key))
+    File.join(log_dir(bucket).gsub(bucket.name + '/',''), out_seperator, local_log_file_basename(bucket, key))
   end
 
   def date

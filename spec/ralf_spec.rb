@@ -4,6 +4,12 @@ require 'ralf'
 
 describe Ralf do
 
+  before(:all) do
+    @key1 = {:name => 'log/access_log-2010-02-10-00-05-32-ZDRFGTCKUYVJCT', :data => 'This is content for key 1'}
+    @key2 = {:name => 'log/access_log-2010-02-10-00-07-28-EFREUTERGRSGDH', :data => 'This is content for key 2'}
+    @key3 = {:name => 'log/access_log-2010-02-11-00-09-32-SDHTFTFHDDDDDH', :data => 'This is content for key 3'}
+  end
+
   before(:each) do
     @default_params = {
       :config => File.dirname(__FILE__) + '/fixtures/config.yaml',
@@ -133,12 +139,14 @@ describe Ralf do
       @ralf.buckets_with_logging.should       eql([@bucket1])
     end
 
+    it "should return the new organized path" do
+      @key1.should_receive(:name).and_return(@key1[:name])
+      @ralf.s3_organized_log_file(@bucket1, @key1).should eql('log/2010/02/10/access_log-2010-02-10-00-05-32-ZDRFGTCKUYVJCT')
+    end
+
     describe "logging" do
 
       before(:each) do
-        @key1 = {:name => 'log/access_log-2010-02-10-00-05-32-ZDRFGTCKUYVJCT', :data => 'This is content for key 1'}
-        @key2 = {:name => 'log/access_log-2010-02-10-00-07-28-EFREUTERGRSGDH', :data => 'This is content for key 2'}
-        @key3 = {:name => 'log/access_log-2010-02-11-00-09-32-SDHTFTFHDDDDDH', :data => 'This is content for key 3'}
         @key1.should_receive(:name).any_number_of_times.and_return(@key1[:name])
         @key2.should_receive(:name).any_number_of_times.and_return(@key2[:name])
         @key1.should_receive(:data).any_number_of_times.and_return(@key1[:data])
