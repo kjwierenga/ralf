@@ -30,8 +30,8 @@ Parameters:
     :aws_secret_access_key  (required in config)
     :out_path               (required in config)
     :out_prefix             (optional, defaults to 's3_combined') Prefix the output file
-    :out_seperator          (optional, defautl to '') specify directory seperators (e.g. ':year/:month/:day')
-    :organize_originals     (boolean, optional, organize asset on S3 in the same structure as :out_seperator)
+    :out_seperator          (optional, defaults to '') specify directory seperators (e.g. ':year/:month/:day')
+    :organize_originals     (boolean, optional) organize asset on S3 in the same structure as :out_seperator
 
 You can ommit a configuration file when you supply the required parameters __:aws\_access\_key\_id___, __:aws\_secret\_access\_key__ and __:out\_path__  
 They take precedence over the config file

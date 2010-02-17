@@ -4,6 +4,21 @@ require 'logmerge'
 require 'ftools'
 require 'ralf/interpolation'
 
+# Parameters:
+#   :config   a YAML config file, if none given it tries to open /etc/ralf.yaml or ~/.ralf.yaml
+#   :date     the date to parse
+# 
+# These params are also config params (supplied in the params hash, they take precedence over the config file)
+#   :aws_access_key_id      (required in config)
+#   :aws_secret_access_key  (required in config)
+#   :out_path               (required in config)
+#   :out_prefix             (optional, defaults to 's3_combined')
+#   :out_seperator          (optional, defaults to '') specify directory seperators (e.g. ':year/:month/:day')
+#   :organize_originals     (boolean, optional) organize asset on S3 in the same structure as :out_seperator
+# 
+# If the required params are given then there is no need to supply a config file
+# 
+
 class Ralf
   class NoConfigFile < StandardError ; end
   class ConfigIncomplete < StandardError ; end
@@ -16,18 +31,6 @@ class Ralf
   attr :config
   attr_reader :s3, :buckets_with_logging
 
-  # Parameters:
-  #   :config   a YAML config file, if none given it tries to open /etc/ralf.yaml or ~/.ralf.yaml
-  #   :date     the date to parse
-  # 
-  # These params are also config params (supplied in the params hash, they take precedence over the config file)
-  #   :aws_access_key_id      (required in config)
-  #   :aws_secret_access_key  (required in config)
-  #   :out_path               (required in config)
-  #   :out_prefix             (optional, defaults to 's3_combined')
-  #   :out_seperator          (optional, defaults to nil) c.q. do we split directories
-  # 
-  # If the required params are given then there is no need to supply a config file
   def initialize(args = {})
     @buckets_with_logging = []
 
@@ -46,8 +49,9 @@ class Ralf
 
   def run
     find_buckets_with_logging
+    puts @buckets_with_logging.collect {|buc| buc.logging_info.inspect } if ENV['DEBUG']
     @buckets_with_logging.each do |bucket|
-      save_logging_to_disk(bucket)
+      save_logging_to_local_disk(bucket)
       merge_to_combined(bucket)
       convert_alt_to_clf(bucket)
     end
@@ -64,23 +68,28 @@ class Ralf
   end
 
   # Saves files to disk if they do not exists yet
-  def save_logging_to_disk(bucket)
-    bucket.keys(:prefix => "%s%s" % [bucket.logging_info[:targetprefix], date]).each do |key|
-      File.makedirs(local_log_dirname(bucket))
-      log_file = File.expand_path(File.join(local_log_dirname(bucket), local_log_file_basename(bucket, key)))
+  def save_logging_to_local_disk(bucket)
 
-      if File.exists?(log_file)
-        puts "File exists #{log_file}" if ENV['DEBUG']
+    search_string = "%s%s" % [bucket.logging_info[:targetprefix], date]
+
+    bucket.keys(:prefix => search_string).each do |key|
+
+      File.makedirs(local_log_dirname(bucket))
+      local_log_file = File.expand_path(File.join(local_log_dirname(bucket), local_log_file_basename(bucket, key)))
+
+      unless File.exists?(local_log_file)
+
+        puts "Writing #{local_log_file}" if ENV['DEBUG']
+        File.open(local_log_file, 'w') { |f| f.write(key.data) }
+
+        if @config[:organize_originals]
+          puts "moving #{key.name} to #{s3_organized_log_file(bucket, key)}" if ENV['DEBUG']
+          key.move(s3_organized_log_file(bucket, key))
+        end
       else
-        puts "Writing #{log_file}" if ENV['DEBUG']
-        File.open(log_file, 'w') { |f| f.write(key.data) }
-        key.move(s3_organized_log_file(bucket, key)) if @config[:organize_originals]
+        puts "File exists #{local_log_file}" if ENV['DEBUG']
       end
     end
-  end
-
-  def s3_organized_log_file(bucket, key)
-    File.join(log_dir(bucket), out_seperator, local_log_file_basename(bucket, key))
   end
 
   # merge all files just downloaded for date to 1 combined file
@@ -102,6 +111,10 @@ class Ralf
     out_file.close
   end
 
+  def s3_organized_log_file(bucket, key)
+    File.join(log_dir(bucket), out_seperator, local_log_file_basename(bucket, key))
+  end
+
   def date
     "%4d-%02d-%02d" % [@date.year, @date.month, @date.day] 
   end
@@ -115,7 +128,6 @@ class Ralf
   end
 
   # Create a dynamic output folder
-  #  ex:  Ralf.new(:out_seperator => ':year/:month/:day')
   def out_seperator
     if @config[:out_seperator]
       Ralf::Interpolation.interpolate(@date, @config[:out_seperator])

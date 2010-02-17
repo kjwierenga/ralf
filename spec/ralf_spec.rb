@@ -127,7 +127,7 @@ describe Ralf do
       File.should_receive(:exists?).once.with(  '/Users/berl/S3/media.kerdienstgemist.nl/log/2010/02/10/access_log-2010-02-10-00-05-32-ZDRFGTCKUYVJCT').and_return(false)
       File.should_receive(:open).once.with(     '/Users/berl/S3/media.kerdienstgemist.nl/log/2010/02/10/access_log-2010-02-10-00-05-32-ZDRFGTCKUYVJCT', "w").and_return(true)
 
-      @ralf.save_logging_to_disk(@bucket1).should eql([@key1, @key2])
+      @ralf.save_logging_to_local_disk(@bucket1).should eql([@key1, @key2])
     end
 
     it "should merge all logs" do
