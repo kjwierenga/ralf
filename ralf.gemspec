@@ -1,7 +1,7 @@
 Gem::Specification.new do |s|
   s.platform = Gem::Platform::RUBY
   s.name = 'ralf'
-  s.version = '0.1.4'
+  s.version = '0.1.5'
   s.summary = "Retrieve Amazon Log Files"
   s.description = <<-EOF
     Download logfiles from Amazon S3 buckets to local disk and combine them in one Apache CLF per bucket
