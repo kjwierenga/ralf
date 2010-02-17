@@ -24,7 +24,9 @@ Parameters:
 ----------
 
     :config   a YAML config file, if none given it tries to open /etc/ralf.yaml or ~/.ralf.yaml
-    :date     the date to parse
+    :date     the date to parse _or_
+    :range    a specific range as a string <start> (wicht creates a range to now) or array: [<start>] _or_ [<start>,<stop>]
+              (examples: 'today'; 'yesterday'; 'january'; ['2 days ago', 'yesterday']; )
 
     :aws_access_key_id      (required in config)
     :aws_secret_access_key  (required in config)

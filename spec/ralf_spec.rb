@@ -80,17 +80,36 @@ describe Ralf do
       lambda {
         ralf = Ralf.new(@default_params.merge(:date => 'someday'))
         ralf.date.should  be_nil
-      }.should raise_error(ArgumentError, "invalid date")
+      }.should raise_error(Ralf::InvalidDate, "someday is an invalid value.")
     end
 
-    xit "should accept a range of dates" do
-      ralf = Ralf.new(@default_params.merge(:date => 'now'))
-      ralf.date.should  be_nil
+    it "should accept a range of 2 dates" do
+      ralf = Ralf.new(@default_params.merge(:date => nil, :range => ['2010-02-10', '2010-02-12']))
+      ralf.range.should eql('2010-02-10 - 2010-02-12')
     end
 
-    xit "should accept a month and convert it to a date" do
-      ralf = Ralf.new(@default_params.merge(:date => 'januari'))
-      ralf.date.should  be_nil
+    it "should accept a range starting with 1 date" do
+      Date.should_receive(:today).any_number_of_times.and_return(Date.strptime('2010-02-17'))
+      ralf = Ralf.new(@default_params.merge(:date => nil, :range => '2010-02-10'))
+      ralf.range.should eql('2010-02-10 - 2010-02-17')
+
+      ralf = Ralf.new(@default_params.merge(:date => nil, :range => ['2010-02-10']))
+      ralf.range.should eql('2010-02-10 - 2010-02-17')
+    end
+
+    it "should accept a range defined by words" do
+      Date.should_receive(:today).any_number_of_times.and_return(Date.strptime('2010-02-17'))
+      Chronic.should_receive(:parse).once.with('2 days ago', {:guess=>false, :context=>:past}).and_return(
+        Chronic::Span.new(Time.parse('Mon Feb 15 00:00:00 +0100 2010'),Time.parse('Tue Feb 16 00:00:00 +0100 2010'))
+      )
+
+      ralf = Ralf.new(@default_params.merge(:date => nil, :range => '2 days ago'))
+      ralf.range.should eql('2010-02-15 - 2010-02-17')
+    end
+
+    it "should accept a month and convert it to a range" do
+      ralf = Ralf.new(@default_params.merge(:date => nil, :range => 'january'))
+      ralf.range.should  eql('2010-01-01 - 2010-01-31')
     end
 
   end

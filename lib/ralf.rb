@@ -3,10 +3,14 @@ require 'right_aws'
 require 'logmerge'
 require 'ftools'
 require 'ralf/interpolation'
+require 'chronic'
+
 
 # Parameters:
 #   :config   a YAML config file, if none given it tries to open /etc/ralf.yaml or ~/.ralf.yaml
-#   :date     the date to parse
+#   :date     the date to parse _or_
+#   :range    a specific range as a string <start> (wicht creates a range to now) or array: [<start>] _or_ [<start>,<stop>]
+#             (examples: 'today'; 'yesterday'; 'january'; ['2 days ago', 'yesterday']; )
 # 
 # These params are also config params (supplied in the params hash, they take precedence over the config file)
 #   :aws_access_key_id      (required in config)
@@ -22,19 +26,25 @@ require 'ralf/interpolation'
 class Ralf
   class NoConfigFile < StandardError ; end
   class ConfigIncomplete < StandardError ; end
+  class InvalidDate < StandardError ; end
 
   DEFAULT_PREFERENCES = ['/etc/ralf.yaml', '~/.ralf.yaml']
   ROOT = File.expand_path(File.join(File.dirname(__FILE__), ".."))
   AMAZON_LOG_FORMAT = Regexp.new('([^ ]*) ([^ ]*) \[([^\]]*)\] ([^ ]*) ([^ ]*) ([^ ]*) ([^ ]*) ([^ ]*) "([^"]*)" ([^ ]*) ([^ ]*) ([^ ]*) ([^ ]*) ([^ ]*) ([^ ]*) "([^"]*)" "([^"]*)"')
 
   attr :date
+  attr :range
   attr :config
   attr_reader :s3, :buckets_with_logging
 
   def initialize(args = {})
     @buckets_with_logging = []
 
-    self.date = args.delete(:date)
+    if args[:range]
+      self.range = args.delete(:range)
+    else
+      self.date = args.delete(:date)
+    end
 
     read_preferences(args.delete(:config), args)
 
@@ -120,10 +130,45 @@ class Ralf
   end
 
   def date=(date)
-    if date
-      @date = Date.strptime(date)
+    if date && ! date.nil?
+      time = Chronic.parse(date, :context => :past )
+      if time 
+        @date = Date.parse(time.strftime('%Y-%m-%d'))
+      else
+        raise Ralf::InvalidDate, "#{date} is an invalid value."
+      end
     else
       @date = Date.today
+    end
+  end
+
+  def range
+    "%4d-%02d-%02d - %4d-%02d-%02d" % [
+      @range[:from].year, @range[:from].month, @range[:from].day,
+      @range[:till].year, @range[:till].month, @range[:till].day
+    ]
+  end
+
+  def range=(range)
+    if range.is_a?(Array)
+      @range = {
+        :from => Chronic.parse(range[0], :context => :past),
+        :till => Chronic.parse(range[1], :context => :past) || Date.today
+      }
+    elsif range.is_a?(String) # when it's a string it can be a specific date or a period (like month)
+      begin
+        date = Date.strptime(range)
+        @range = { :from => date, :till => Date.today }
+      rescue # date raises an error
+        time = Chronic.parse(range, :context => :past, :guess => false)
+        if time.width > (3600 * 24) # this is a period
+          @range = { :from => time.begin, :till => time.end.utc }
+        else
+          @range = { :from => time.begin, :till => Date.today }
+        end
+      end
+    else
+      raise Ralf::InvalidDate, "#{range} is an invalid value."
     end
   end
 
