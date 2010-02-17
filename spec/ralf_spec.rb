@@ -125,11 +125,11 @@ describe Ralf do
     before(:each) do
       @ralf = Ralf.new(@default_params)
       @bucket1 = {:name => 'bucket1'}
-      @bucket1.should_receive(:logging_info).any_number_of_times.and_return({ :enabled => true, :targetprefix => "log/access_log-" })
-      @bucket1.should_receive(:name).any_number_of_times.and_return('media.kerdienstgemist.nl')
+      @bucket1.should_receive(:logging_info).any_number_of_times.and_return({ :enabled => true, :targetprefix => "log/access_log-", :targetbucket => @bucket1[:name] })
+      @bucket1.should_receive(:name).any_number_of_times.and_return(@bucket1[:name])
       @bucket2 = {:name => 'bucket2'}
-      @bucket2.should_receive(:logging_info).any_number_of_times.and_return({ :enabled => false, :targetprefix => "log/" })
-      @bucket2.should_receive(:name).any_number_of_times.and_return('media.kerdienstgemist.nl')
+      @bucket2.should_receive(:logging_info).any_number_of_times.and_return({ :enabled => false, :targetprefix => "log/", :targetbucket => @bucket2[:name] })
+      @bucket2.should_receive(:name).any_number_of_times.and_return(@bucket2[:name])
     end
 
     it "should find buckets with logging enabled" do
@@ -155,10 +155,11 @@ describe Ralf do
 
       it "should save logging to disk" do
         @bucket1.should_receive(:keys).any_number_of_times.and_return([@key1, @key2])
-        File.should_receive(:makedirs).twice.with('/Users/berl/S3/media.kerdienstgemist.nl/log/2010/02/10').and_return(true)
-        File.should_receive(:exists?).once.with(  '/Users/berl/S3/media.kerdienstgemist.nl/log/2010/02/10/access_log-2010-02-10-00-07-28-EFREUTERGRSGDH').and_return(true)
-        File.should_receive(:exists?).once.with(  '/Users/berl/S3/media.kerdienstgemist.nl/log/2010/02/10/access_log-2010-02-10-00-05-32-ZDRFGTCKUYVJCT').and_return(false)
-        File.should_receive(:open).once.with(     '/Users/berl/S3/media.kerdienstgemist.nl/log/2010/02/10/access_log-2010-02-10-00-05-32-ZDRFGTCKUYVJCT', "w").and_return(true)
+
+        File.should_receive(:makedirs).twice.with('/Users/berl/S3/bucket1/log/2010/02/10').and_return(true)
+        File.should_receive(:exists?).once.with(  '/Users/berl/S3/bucket1/log/2010/02/10/access_log-2010-02-10-00-07-28-EFREUTERGRSGDH').and_return(true)
+        File.should_receive(:exists?).once.with(  '/Users/berl/S3/bucket1/log/2010/02/10/access_log-2010-02-10-00-05-32-ZDRFGTCKUYVJCT').and_return(false)
+        File.should_receive(:open).once.with(     '/Users/berl/S3/bucket1/log/2010/02/10/access_log-2010-02-10-00-05-32-ZDRFGTCKUYVJCT', "w").and_return(true)
 
         @ralf.save_logging_to_local_disk(@bucket1, '2010-02-10').should eql([@key1, @key2])
       end
@@ -171,11 +172,11 @@ describe Ralf do
         @ralf.date = nil
         @ralf.range = ['2010-02-10', '2010-02-12']
 
-        File.should_receive(:exists?).once.with(  '/Users/berl/S3/media.kerdienstgemist.nl/log/2010/02/10/access_log-2010-02-10-00-05-32-ZDRFGTCKUYVJCT').and_return(false)
-        File.should_receive(:exists?).once.with(  '/Users/berl/S3/media.kerdienstgemist.nl/log/2010/02/10/access_log-2010-02-10-00-07-28-EFREUTERGRSGDH').and_return(true)
-        File.should_receive(:exists?).once.with(  '/Users/berl/S3/media.kerdienstgemist.nl/log/2010/02/11/access_log-2010-02-11-00-09-32-SDHTFTFHDDDDDH').and_return(false)
-        File.should_receive(:open).once.with(     '/Users/berl/S3/media.kerdienstgemist.nl/log/2010/02/10/access_log-2010-02-10-00-05-32-ZDRFGTCKUYVJCT', "w").and_return(true)
-        File.should_receive(:open).once.with(     '/Users/berl/S3/media.kerdienstgemist.nl/log/2010/02/11/access_log-2010-02-11-00-09-32-SDHTFTFHDDDDDH', "w").and_return(true)
+        File.should_receive(:exists?).once.with(  '/Users/berl/S3/bucket1/log/2010/02/10/access_log-2010-02-10-00-05-32-ZDRFGTCKUYVJCT').and_return(false)
+        File.should_receive(:exists?).once.with(  '/Users/berl/S3/bucket1/log/2010/02/10/access_log-2010-02-10-00-07-28-EFREUTERGRSGDH').and_return(true)
+        File.should_receive(:exists?).once.with(  '/Users/berl/S3/bucket1/log/2010/02/11/access_log-2010-02-11-00-09-32-SDHTFTFHDDDDDH').and_return(false)
+        File.should_receive(:open).once.with(     '/Users/berl/S3/bucket1/log/2010/02/10/access_log-2010-02-10-00-05-32-ZDRFGTCKUYVJCT', "w").and_return(true)
+        File.should_receive(:open).once.with(     '/Users/berl/S3/bucket1/log/2010/02/11/access_log-2010-02-11-00-09-32-SDHTFTFHDDDDDH', "w").and_return(true)
 
         @ralf.save_logging(@bucket1).class.should  eql(Range)
       end
@@ -185,16 +186,16 @@ describe Ralf do
     it "should merge all logs" do
       out_string = StringIO.new
 
-      Dir.should_receive(:glob).with('/Users/berl/S3/media.kerdienstgemist.nl/log/2010/02/10/access_log-2010-02-10*').and_return(
-          ['/Users/berl/S3/media.kerdienstgemist.nl/log/2010/02/10/access_log-2010-02-10-00-05-32-ZDRFGTCKUYVJCT',
-           '/Users/berl/S3/media.kerdienstgemist.nl/log/2010/02/10/access_log-2010-02-10-00-07-28-EFREUTERGRSGDH'])
+      Dir.should_receive(:glob).with('/Users/berl/S3/bucket1/log/2010/02/10/access_log-2010-02-10*').and_return(
+          ['/Users/berl/S3/bucket1/log/2010/02/10/access_log-2010-02-10-00-05-32-ZDRFGTCKUYVJCT',
+           '/Users/berl/S3/bucket1/log/2010/02/10/access_log-2010-02-10-00-07-28-EFREUTERGRSGDH'])
 
-      File.should_receive(:open).with('/Users/berl/S3/s3_combined_media.kerdienstgemist.nl_2010-02-10.alf', "w").and_yield(out_string)
+      File.should_receive(:open).with('/Users/berl/S3/s3_combined_bucket1_2010-02-10.alf', "w").and_yield(out_string)
 
       LogMerge::Merger.should_receive(:merge).with(
         out_string, 
-        '/Users/berl/S3/media.kerdienstgemist.nl/log/2010/02/10/access_log-2010-02-10-00-05-32-ZDRFGTCKUYVJCT',
-        '/Users/berl/S3/media.kerdienstgemist.nl/log/2010/02/10/access_log-2010-02-10-00-07-28-EFREUTERGRSGDH'
+        '/Users/berl/S3/bucket1/log/2010/02/10/access_log-2010-02-10-00-05-32-ZDRFGTCKUYVJCT',
+        '/Users/berl/S3/bucket1/log/2010/02/10/access_log-2010-02-10-00-07-28-EFREUTERGRSGDH'
       )
 
       @ralf.merge_to_combined(@bucket1)
@@ -203,27 +204,27 @@ describe Ralf do
     end
 
     it "should save logs which have a targetprefix containing a '/'" do
-      @ralf.local_log_dirname(@bucket1).should  eql('/Users/berl/S3/media.kerdienstgemist.nl/log/2010/02/10')
-      @ralf.local_log_dirname(@bucket2).should  eql('/Users/berl/S3/media.kerdienstgemist.nl/log/2010/02/10')
+      @ralf.local_log_dirname(@bucket1).should  eql('/Users/berl/S3/bucket1/log/2010/02/10')
+      @ralf.local_log_dirname(@bucket2).should  eql('/Users/berl/S3/bucket2/log/2010/02/10')
     end
 
     it "should save to a subdir when a out_seperator is given" do
-      @ralf.local_log_dirname(@bucket1).should  eql('/Users/berl/S3/media.kerdienstgemist.nl/log/2010/02/10')
+      @ralf.local_log_dirname(@bucket1).should  eql('/Users/berl/S3/bucket1/log/2010/02/10')
 
       @ralf.out_seperator = ':year/w:week'
-      @ralf.local_log_dirname(@bucket1).should  eql('/Users/berl/S3/media.kerdienstgemist.nl/log/2010/w06')
+      @ralf.local_log_dirname(@bucket1).should  eql('/Users/berl/S3/bucket1/log/2010/w06')
     end
 
     it "should get the proper directories" do
-      @key.should_receive(:name).and_return('log/access_log-2010-02-10-00-05-32-ZDRFGTCKUYVJCT')
+      @key1.should_receive(:name).and_return('log/access_log-2010-02-10-00-05-32-ZDRFGTCKUYVJCT')
       @ralf.local_log_file_basename_prefix(@bucket1).should   eql('access_log-')
-      @ralf.local_log_file_basename(@bucket1, @key).should    eql('access_log-2010-02-10-00-05-32-ZDRFGTCKUYVJCT')
-      @ralf.local_log_dirname(@bucket1).should                eql('/Users/berl/S3/media.kerdienstgemist.nl/log/2010/02/10')
+      @ralf.local_log_file_basename(@bucket1, @key1).should   eql('access_log-2010-02-10-00-05-32-ZDRFGTCKUYVJCT')
+      @ralf.local_log_dirname(@bucket1).should                eql('/Users/berl/S3/bucket1/log/2010/02/10')
 
-      @key.should_receive(:name).and_return('log/2010-02-10-00-05-32-ZDRFGTCKUYVJCT')
+      @key1.should_receive(:name).and_return('log/2010-02-10-00-05-32-ZDRFGTCKUYVJCT')
       @ralf.local_log_file_basename_prefix(@bucket2).should   eql('')
-      @ralf.local_log_file_basename(@bucket2, @key).should    eql('2010-02-10-00-05-32-ZDRFGTCKUYVJCT')
-      @ralf.local_log_dirname(@bucket2).should                eql('/Users/berl/S3/media.kerdienstgemist.nl/log/2010/02/10')
+      @ralf.local_log_file_basename(@bucket2, @key1).should   eql('2010-02-10-00-05-32-ZDRFGTCKUYVJCT')
+      @ralf.local_log_dirname(@bucket2).should                eql('/Users/berl/S3/bucket2/log/2010/02/10')
     end
 
   end
@@ -231,14 +232,14 @@ describe Ralf do
   describe "Conversion" do
 
     before(:each) do
-      @ralf = Ralf.new(@default_params)
+      @ralf    = Ralf.new(@default_params)
       @bucket1 = {:name => 'bucket1'}
-      @bucket1.should_receive(:name).any_number_of_times.and_return('media.kerdienstgemist.nl')
+      @bucket1.should_receive(:name).any_number_of_times.and_return('bucket1')
     end
 
     it "should convert the alf to clf" do
-      File.should_receive(:open).once.with("/Users/berl/S3/s3_combined_media.kerdienstgemist.nl_2010-02-10.log", "w").and_return(File)
-      File.should_receive(:open).once.with("/Users/berl/S3/s3_combined_media.kerdienstgemist.nl_2010-02-10.alf", "r").and_return(File)
+      File.should_receive(:open).once.with("/Users/berl/S3/s3_combined_bucket1_2010-02-10.log", "w").and_return(File)
+      File.should_receive(:open).once.with("/Users/berl/S3/s3_combined_bucket1_2010-02-10.alf", "r").and_return(File)
       File.should_receive(:close).once.and_return(true)
       @ralf.convert_alt_to_clf(@bucket1).should eql(true)
     end
