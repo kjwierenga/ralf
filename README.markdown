@@ -12,11 +12,19 @@ Prerequirements:
 * Enable logging on S3 (use [cyberduck](http://cyberduck.ch/) for example)
 
 Execution:
-    r = Ralf.new(:config => '/my/config.yaml', :date => '2010-02-01', :out_seperator => ':year/:month/:day')
+
+    require 'ralf'
+    r = Ralf.new(
+      :config => '/my/config.yaml',
+      :out_seperator => ':year/:month/:day',
+      :organize_originals => true,
+      :range => 'yesterday'
+    )
     r.run
 
 Or run it in one go:
 
+    require 'ralf'
     Ralf.run(:config => '/my/config.yaml', :date => '2010-02-01', :out_seperator => ':year/:month/:day')
 
 
@@ -27,13 +35,15 @@ Parameters:
     :date     the date to parse _or_
     :range    a specific range as a string <start> (wicht creates a range to now) or array: [<start>] _or_ [<start>,<stop>]
               (examples: 'today'; 'yesterday'; 'january'; ['2 days ago', 'yesterday']; )
+    (note:  When :range is supplied it takes precendence over :date)
 
     :aws_access_key_id      (required in config)
     :aws_secret_access_key  (required in config)
     :out_path               (required in config)
     :out_prefix             (optional, defaults to 's3_combined') Prefix the output file
     :out_seperator          (optional, defaults to '') specify directory seperators (e.g. ':year/:month/:day')
-    :organize_originals     (boolean, optional) organize asset on S3 in the same structure as :out_seperator
+    :organize_originals     (boolean, optional) organize asset on S3 in the same structure as :out_seperator 
+                            (WARNING: there is an extra performance and cost penalty)
 
 You can ommit a configuration file when you supply the required parameters __:aws\_access\_key\_id___, __:aws\_secret\_access\_key__ and __:out\_path__  
 They take precedence over the config file

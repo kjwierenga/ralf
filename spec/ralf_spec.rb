@@ -85,16 +85,16 @@ describe Ralf do
 
     it "should accept a range of 2 dates" do
       ralf = Ralf.new(@default_params.merge(:date => nil, :range => ['2010-02-10', '2010-02-12']))
-      ralf.range.should eql('2010-02-10 - 2010-02-12')
+      ralf.range.to_s.should eql('2010-02-10..2010-02-12')
     end
 
     it "should accept a range starting with 1 date" do
       Date.should_receive(:today).any_number_of_times.and_return(Date.strptime('2010-02-17'))
       ralf = Ralf.new(@default_params.merge(:date => nil, :range => '2010-02-10'))
-      ralf.range.should eql('2010-02-10 - 2010-02-17')
+      ralf.range.to_s.should eql('2010-02-10..2010-02-17')
 
       ralf = Ralf.new(@default_params.merge(:date => nil, :range => ['2010-02-10']))
-      ralf.range.should eql('2010-02-10 - 2010-02-17')
+      ralf.range.to_s.should eql('2010-02-10..2010-02-17')
     end
 
     it "should accept a range defined by words" do
@@ -104,12 +104,12 @@ describe Ralf do
       )
 
       ralf = Ralf.new(@default_params.merge(:date => nil, :range => '2 days ago'))
-      ralf.range.should eql('2010-02-15 - 2010-02-17')
+      ralf.range.to_s.should eql('2010-02-15..2010-02-17')
     end
 
     it "should accept a month and convert it to a range" do
       ralf = Ralf.new(@default_params.merge(:date => nil, :range => 'january'))
-      ralf.range.should  eql('2010-01-01 - 2010-01-31')
+      ralf.range.to_s.should  eql('2010-01-01..2010-01-31')
     end
 
   end
@@ -133,20 +133,45 @@ describe Ralf do
       @ralf.buckets_with_logging.should       eql([@bucket1])
     end
 
-    it "should save logging to disk" do
-      @key1 = {:name => 'log/access_log-2010-02-10-00-05-32-ZDRFGTCKUYVJCT', :data => 'This is content'}
-      @key2 = {:name => 'log/access_log-2010-02-10-00-07-28-EFREUTERGRSGDH', :data => 'This is content'}
-      @bucket1.should_receive(:keys).any_number_of_times.and_return([@key1, @key2])
-      @key1.should_receive(:name).any_number_of_times.and_return(@key1[:name])
-      @key2.should_receive(:name).any_number_of_times.and_return(@key2[:name])
-      @key1.should_receive(:data).any_number_of_times.and_return(@key1[:data])
-      @key2.should_receive(:data).any_number_of_times.and_return(@key2[:data])
-      File.should_receive(:makedirs).twice.with('/Users/berl/S3/media.kerdienstgemist.nl/log/2010/02/10').and_return(true)
-      File.should_receive(:exists?).once.with(  '/Users/berl/S3/media.kerdienstgemist.nl/log/2010/02/10/access_log-2010-02-10-00-07-28-EFREUTERGRSGDH').and_return(true)
-      File.should_receive(:exists?).once.with(  '/Users/berl/S3/media.kerdienstgemist.nl/log/2010/02/10/access_log-2010-02-10-00-05-32-ZDRFGTCKUYVJCT').and_return(false)
-      File.should_receive(:open).once.with(     '/Users/berl/S3/media.kerdienstgemist.nl/log/2010/02/10/access_log-2010-02-10-00-05-32-ZDRFGTCKUYVJCT', "w").and_return(true)
+    describe "logging" do
 
-      @ralf.save_logging_to_local_disk(@bucket1).should eql([@key1, @key2])
+      before(:each) do
+        @key1 = {:name => 'log/access_log-2010-02-10-00-05-32-ZDRFGTCKUYVJCT', :data => 'This is content for key 1'}
+        @key2 = {:name => 'log/access_log-2010-02-10-00-07-28-EFREUTERGRSGDH', :data => 'This is content for key 2'}
+        @key3 = {:name => 'log/access_log-2010-02-11-00-09-32-SDHTFTFHDDDDDH', :data => 'This is content for key 3'}
+        @key1.should_receive(:name).any_number_of_times.and_return(@key1[:name])
+        @key2.should_receive(:name).any_number_of_times.and_return(@key2[:name])
+        @key1.should_receive(:data).any_number_of_times.and_return(@key1[:data])
+        @key2.should_receive(:data).any_number_of_times.and_return(@key2[:data])
+      end
+
+      it "should save logging to disk" do
+        @bucket1.should_receive(:keys).any_number_of_times.and_return([@key1, @key2])
+        File.should_receive(:makedirs).twice.with('/Users/berl/S3/media.kerdienstgemist.nl/log/2010/02/10').and_return(true)
+        File.should_receive(:exists?).once.with(  '/Users/berl/S3/media.kerdienstgemist.nl/log/2010/02/10/access_log-2010-02-10-00-07-28-EFREUTERGRSGDH').and_return(true)
+        File.should_receive(:exists?).once.with(  '/Users/berl/S3/media.kerdienstgemist.nl/log/2010/02/10/access_log-2010-02-10-00-05-32-ZDRFGTCKUYVJCT').and_return(false)
+        File.should_receive(:open).once.with(     '/Users/berl/S3/media.kerdienstgemist.nl/log/2010/02/10/access_log-2010-02-10-00-05-32-ZDRFGTCKUYVJCT', "w").and_return(true)
+
+        @ralf.save_logging_to_local_disk(@bucket1, '2010-02-10').should eql([@key1, @key2])
+      end
+
+      it "should save logging for range to disk" do
+        @bucket1.should_receive(:keys).any_number_of_times.and_return([@key1, @key2], [@key3], [])
+        @key3.should_receive(:name).any_number_of_times.and_return(@key3[:name])
+        @key3.should_receive(:data).any_number_of_times.and_return(@key3[:data])
+
+        @ralf.date = nil
+        @ralf.range = ['2010-02-10', '2010-02-12']
+
+        File.should_receive(:exists?).once.with(  '/Users/berl/S3/media.kerdienstgemist.nl/log/2010/02/10/access_log-2010-02-10-00-05-32-ZDRFGTCKUYVJCT').and_return(false)
+        File.should_receive(:exists?).once.with(  '/Users/berl/S3/media.kerdienstgemist.nl/log/2010/02/10/access_log-2010-02-10-00-07-28-EFREUTERGRSGDH').and_return(true)
+        File.should_receive(:exists?).once.with(  '/Users/berl/S3/media.kerdienstgemist.nl/log/2010/02/11/access_log-2010-02-11-00-09-32-SDHTFTFHDDDDDH').and_return(false)
+        File.should_receive(:open).once.with(     '/Users/berl/S3/media.kerdienstgemist.nl/log/2010/02/10/access_log-2010-02-10-00-05-32-ZDRFGTCKUYVJCT', "w").and_return(true)
+        File.should_receive(:open).once.with(     '/Users/berl/S3/media.kerdienstgemist.nl/log/2010/02/11/access_log-2010-02-11-00-09-32-SDHTFTFHDDDDDH', "w").and_return(true)
+
+        @ralf.save_logging(@bucket1).class.should  eql(Range)
+      end
+
     end
 
     it "should merge all logs" do

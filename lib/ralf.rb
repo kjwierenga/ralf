@@ -11,6 +11,7 @@ require 'chronic'
 #   :date     the date to parse _or_
 #   :range    a specific range as a string <start> (wicht creates a range to now) or array: [<start>] _or_ [<start>,<stop>]
 #             (examples: 'today'; 'yesterday'; 'january'; ['2 days ago', 'yesterday']; )
+#   (note:  When :range is supplied it takes precendence over :date)
 # 
 # These params are also config params (supplied in the params hash, they take precedence over the config file)
 #   :aws_access_key_id      (required in config)
@@ -19,6 +20,8 @@ require 'chronic'
 #   :out_prefix             (optional, defaults to 's3_combined')
 #   :out_seperator          (optional, defaults to '') specify directory seperators (e.g. ':year/:month/:day')
 #   :organize_originals     (boolean, optional) organize asset on S3 in the same structure as :out_seperator
+#                           (WARNING: there is an extra performance and cost penalty)
+
 # 
 # If the required params are given then there is no need to supply a config file
 # 
@@ -61,7 +64,7 @@ class Ralf
     find_buckets_with_logging
     puts @buckets_with_logging.collect {|buc| buc.logging_info.inspect } if ENV['DEBUG']
     @buckets_with_logging.each do |bucket|
-      save_logging_to_local_disk(bucket)
+      save_logging(bucket)
       merge_to_combined(bucket)
       convert_alt_to_clf(bucket)
     end
@@ -77,10 +80,21 @@ class Ralf
     end
   end
 
-  # Saves files to disk if they do not exists yet
-  def save_logging_to_local_disk(bucket)
+  def save_logging(bucket)
+    if @range
+      range.each do |day|
+        @date = day
+        save_logging_to_local_disk(bucket, day)
+      end
+    else
+      save_logging_to_local_disk(bucket, date)
+    end
+  end
 
-    search_string = "%s%s" % [bucket.logging_info[:targetprefix], date]
+  # Saves files to disk if they do not exists yet
+  def save_logging_to_local_disk(bucket, the_date)
+
+    search_string = "%s%s" % [bucket.logging_info[:targetprefix], the_date]
 
     bucket.keys(:prefix => search_string).each do |key|
 
@@ -88,16 +102,15 @@ class Ralf
       local_log_file = File.expand_path(File.join(local_log_dirname(bucket), local_log_file_basename(bucket, key)))
 
       unless File.exists?(local_log_file)
-
         puts "Writing #{local_log_file}" if ENV['DEBUG']
         File.open(local_log_file, 'w') { |f| f.write(key.data) }
-
-        if @config[:organize_originals]
-          puts "moving #{key.name} to #{s3_organized_log_file(bucket, key)}" if ENV['DEBUG']
-          key.move(s3_organized_log_file(bucket, key))
-        end
       else
         puts "File exists #{local_log_file}" if ENV['DEBUG']
+      end
+
+      if @config[:organize_originals]
+        puts "moving #{key.name} to #{s3_organized_log_file(bucket, key)}" if ENV['DEBUG']
+        key.move(s3_organized_log_file(bucket, key))
       end
     end
   end
@@ -143,10 +156,10 @@ class Ralf
   end
 
   def range
-    "%4d-%02d-%02d - %4d-%02d-%02d" % [
-      @range[:from].year, @range[:from].month, @range[:from].day,
-      @range[:till].year, @range[:till].month, @range[:till].day
-    ]
+    Range.new(
+      Date.new(@range[:from].year, @range[:from].month, @range[:from].day),
+      Date.new(@range[:till].year, @range[:till].month, @range[:till].day)
+    )
   end
 
   def range=(range)
