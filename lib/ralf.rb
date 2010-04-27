@@ -43,16 +43,16 @@ class Ralf
   def initialize(args = {})
     @buckets_with_logging = []
 
+    params = args.dup
     if args[:range]
-      self.range = args.delete(:range)
+      self.range = params.delete(:range)
     else
-      self.date = args.delete(:date)
+      self.date = params.delete(:date)
     end
 
-    read_preferences(args.delete(:config), args)
+    read_preferences(params.delete(:config), params)
 
     @s3 = RightAws::S3.new(@config[:aws_access_key_id], @config[:aws_secret_access_key]) 
-
   end
 
   def self.run(*args)
