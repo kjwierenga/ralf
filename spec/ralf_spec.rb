@@ -18,11 +18,14 @@ describe Ralf do
       :out_seperator => ':year/:month/:day',
       :date => '2010-02-10'
     }
-
+    
     # File = mock('File')
   end
 
   before(:each) do
+    # TODO find out why next line only behaves as expected in before(:each)
+    # it should really work OK in before(:all)
+    RightAws::S3.should_receive(:new).any_number_of_times.and_return(mock('RightAws::S3'))
   end
 
   describe "Preferences" do
@@ -170,7 +173,7 @@ describe Ralf do
 
     it "should return the new organized path" do
       File.should_receive(:dirname).with("bucket1/log/access_log-").and_return('bucket1/log')
-      File.should_receive(:join) { |args| args.join('/') }
+      File.should_receive(:join) { |*args| args.join('/') }
       
       @key1.should_receive(:name).and_return(@key1[:name])
       @ralf.s3_organized_log_file(@bucket1, @key1).should eql('log/2010/02/10/access_log-2010-02-10-00-05-32-ZDRFGTCKUYVJCT')
@@ -225,7 +228,6 @@ describe Ralf do
           File.should_receive(:dirname).with("bucket1/log/access_log-").and_return('bucket1/log')
           File.should_receive(:expand_path).any_number_of_times { |dir| dir }
           File.should_receive(:dirname).with('/Test/Users/test_user/S3/bucket1/log/2010/02/10').and_return('/Test/Users/test_user/S3/bucket1/log/2010/02')
-          # File.should_receive(:join) { |args| args.join('/') }
 
           @ralf.save_logging(@bucket1).class.should  eql(Range)
         end
@@ -240,7 +242,7 @@ describe Ralf do
           @bucket1.should_receive(:keys).any_number_of_times.and_return([@key1, @key2])
 
           File.should_receive(:expand_path).with('/Test/Users/test_user/S3/bucket3/log/2010/02/10').and_return('/Test/Users/test_user/S3/bucket3/log/2010/02/10')
-          File.should_receive(:join) { |args| args.join('/') }
+          File.should_receive(:join) { |*args| args.join('/') }
 
           @ralf.save_logging_to_local_disk(@bucket3, '2010-02-10').should eql([@key1, @key2])
         end
@@ -264,7 +266,7 @@ describe Ralf do
       )
 
       File.should_receive(:dirname).with("bucket1/log/access_log-").and_return('bucket1/log')
-      File.should_receive(:join).any_number_of_times { |args| args.join('/') }
+      File.should_receive(:join).any_number_of_times { |*args| args.join('/') }
       
       File.should_receive(:expand_path).with('/Test/Users/test_user/S3/bucket1/log/2010/02/10').and_return('/Test/Users/test_user/S3/bucket1/log/2010/02/10')
 
@@ -301,7 +303,7 @@ describe Ralf do
 
     it "should get the proper directories" do
       File.should_receive(:expand_path).with('/Test/Users/test_user/S3/bucket1/log/2010/02/10').and_return('/Test/Users/test_user/S3/bucket1/log/2010/02/10')
-      File.should_receive(:join).any_number_of_times { |args| args.join('/') }
+      File.should_receive(:join).any_number_of_times { |*args| args.join('/') }
       
       @key1.should_receive(:name).and_return('log/access_log-2010-02-10-00-05-32-ZDRFGTCKUYVJCT')
       @ralf.local_log_file_basename_prefix(@bucket1).should   eql('access_log-')
@@ -334,7 +336,7 @@ describe Ralf do
       File.should_receive(:open).once.with("/Test/Users/test_user/S3/s3_combined_bucket1_2010-02-10.alf", "r").and_return(File)
       File.should_receive(:close).once.and_return(true)
 
-      File.should_receive(:join).any_number_of_times { |args| args.join('/') }
+      File.should_receive(:join).any_number_of_times { |*args| args.join('/') }
 
       @ralf.convert_alt_to_clf(@bucket1).should eql(true)
     end
