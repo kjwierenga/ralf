@@ -35,7 +35,7 @@ Parameters:
 
     config:   a YAML config file, if none given it tries to open /etc/ralf.yaml or ~/.ralf.yaml
     date:     the date to parse _or_
-    range:    a specific range as a string <start> (wicht creates a range to now) or array: [<start>] _or_ [<start>,<stop>]
+    range:    a specific range as a string <start> (which creates a range to now) or array: [<start>] _or_ [<start>,<stop>]
               (examples: 'today'; 'yesterday'; 'january'; ['2 days ago', 'yesterday']; )
     (note:  When :range is supplied it takes precendence over :date)
 
@@ -46,6 +46,7 @@ Parameters:
     out_seperator:          (optional, defaults to '') specify directory seperators (e.g. ':year/:month/:day')
     organize_originals:     (boolean, optional) organize asset on S3 in the same structure as :out_seperator 
                             (WARNING: there is an extra performance and cost penalty)
+    log_file:               (optional, defaults to '/var/log/ralf.log') Logging of ralf actions.
 
 You can ommit a configuration file when you supply the required parameters __:aws\_access\_key\_id___, __:aws\_secret\_access\_key__ and __:out\_path__  
 They take precedence over the config file
