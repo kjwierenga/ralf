@@ -369,9 +369,12 @@ describe Ralf do
   end
   
   def config_file_expectations
-    File.should_receive(:expand_path).twice.with(CONFIG_PATH).and_return(FULL_CONFIG_PATH)
-    File.should_receive(:exists?).once.with(FULL_CONFIG_PATH).and_return(true)
-    File.should_receive(:open).once.and_return(CONFIG_YAML)
+    File.stub(:expand_path) { |path| path } #.ordered.with(CONFIG_PATH).and_return(FULL_CONFIG_PATH)
+    File.stub(:exists?).and_return(true) #.once.with(FULL_CONFIG_PATH).and_return(true)
+    YAML.stub(:load_file).and_return(CONFIG_YAML)
+    
+    log_file = '/var/log/ralf.log'
+    File.stub(:open).once.and_return(StringIO.new)
   end
 
 end
