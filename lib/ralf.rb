@@ -31,7 +31,7 @@ class Ralf
   class ConfigIncomplete < StandardError ; end
   class InvalidDate < StandardError ; end
 
-  DEFAULT_PREFERENCES = ['/etc/ralf.yaml', '~/.ralf.yaml']
+  DEFAULT_PREFERENCES = [ '/etc/ralf.yaml', '~/.ralf.yaml' ]
   ROOT = File.expand_path(File.join(File.dirname(__FILE__), ".."))
   AMAZON_LOG_FORMAT = Regexp.new('([^ ]*) ([^ ]*) \[([^\]]*)\] ([^ ]*) ([^ ]*) ([^ ]*) ([^ ]*) ([^ ]*) "([^"]*)" ([^ ]*) ([^ ]*) ([^ ]*) ([^ ]*) ([^ ]*) ([^ ]*) "([^"]*)" "([^"]*)"')
 
@@ -52,15 +52,22 @@ class Ralf
 
     read_preferences(params.delete(:config), params)
 
-    @s3 = RightAws::S3.new(@config[:aws_access_key_id], @config[:aws_secret_access_key]) 
+    log_file = File.open(File.expand_path(@config[:log_file] || '/var/log/ralf.log'),
+                         File::WRONLY | File::APPEND | File::CREAT)
+    @s3 = RightAws::S3.new(
+            @config[:aws_access_key_id],
+            @config[:aws_secret_access_key],
+            { :logger => Logger.new(log_file) })
   end
 
-  def self.run(*args)
-    ralf = Ralf.new(*args)
+  def self.run(params)
+    ralf = Ralf.new(params)
     ralf.run
   end
 
   def run
+    STDOUT.puts "Processing: #{range}"
+    
     find_buckets_with_logging
     puts @buckets_with_logging.collect {|buc| buc.logging_info.inspect } if ENV['DEBUG']
     @buckets_with_logging.each do |bucket|
