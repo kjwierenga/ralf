@@ -270,6 +270,8 @@ protected
     else
       raise NoConfigFile, "There is no config file defined for Ralf."
     end
+    
+    @config[:out_path] = File.expand_path(@config[:out_path])
 
     raise ConfigIncomplete unless (
       (@config[:aws_access_key_id]     || ENV['AWS_ACCESS_KEY_ID']) &&
