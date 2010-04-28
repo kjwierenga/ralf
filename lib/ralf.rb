@@ -258,7 +258,13 @@ protected
     end
 
     if config_file && File.exists?( File.expand_path(config_file) )
-      @config = YAML.load_file( File.expand_path(config_file) ).merge(params)
+      @config = YAML.load_file( File.expand_path(config_file) )
+      
+      # define symbolize_keys! method on the instance to convert key strings to symbols
+      def @config.symbolize_keys!; h = self.dup; self.clear; h.each_pair { |k,v| self[k.to_sym] = v }; self; end
+
+      @config.symbolize_keys!
+      @config.merge!(params)
     elsif params.size > 0
       @config = params
     else

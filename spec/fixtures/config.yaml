@@ -1,4 +1,4 @@
-:aws_access_key_id:     access_key
-:aws_secret_access_key: secret
-:out_path: /Test/Users/test_user/S3
-:out_prefix: s3_combined
+aws_access_key_id:     access_key
+aws_secret_access_key: secret
+out_path: /Test/Users/test_user/S3
+out_prefix: s3_combined
