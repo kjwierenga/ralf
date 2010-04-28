@@ -59,17 +59,23 @@ describe Ralf do
     end
 
     it "should look for default configurations" do
+      log_file = '/var/log/ralf.log'
+      File.should_receive(:expand_path).once.with(log_file).and_return(log_file)
+      File.stub(:open).and_return(StringIO.new)
+
+      
+      YAML.should_receive(:load_file).with('/Test/Users/test_user/.ralf.yaml').and_return({
+        'aws_access_key_id'      => 'access_key',
+        'aws_secret_access_key'  => 'secret',
+        'out_path'               => '/Test/Users/test_user/S3',
+        'out_prefix'             => 's3_combined'
+      })
       File.should_receive(:expand_path).once.with('~/.ralf.yaml').and_return('/Test/Users/test_user/.ralf.yaml')
       File.should_receive(:expand_path).twice.with('/Test/Users/test_user/.ralf.yaml').and_return('/Test/Users/test_user/.ralf.yaml')
       File.should_receive(:expand_path).once.with('/etc/ralf.yaml').and_return('/etc/ralf.yaml')
+      File.should_receive(:expand_path).once.with('/Test/Users/test_user/S3').and_return('/Test/Users/test_user/S3')
       File.should_receive(:exists?).once.with('/etc/ralf.yaml').and_return(false)
       File.should_receive(:exists?).twice.with('/Test/Users/test_user/.ralf.yaml').and_return(true)
-      YAML.should_receive(:load_file).with('/Test/Users/test_user/.ralf.yaml').and_return({
-        :aws_access_key_id      => 'access_key',
-        :aws_secret_access_key  => 'secret',
-        :out_path               => '/Test/Users/test_user/S3',
-        :out_prefix             => 's3_combined'
-      })
 
       ralf = Ralf.new()
     end
