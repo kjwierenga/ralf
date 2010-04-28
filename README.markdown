@@ -13,6 +13,7 @@ Prerequirements:
 
 Execution:
 
+    require 'rubygems'
     require 'ralf'
     r = Ralf.new(
       :config => '/my/config.yaml',
@@ -24,6 +25,7 @@ Execution:
 
 Or run it in one go:
 
+    require 'rubygems'
     require 'ralf'
     Ralf.run(:config => '/my/config.yaml', :date => '2010-02-01', :out_seperator => ':year/:month/:day')
 
