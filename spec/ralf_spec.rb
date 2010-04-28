@@ -215,7 +215,7 @@ describe Ralf do
       end
 
       it "should save logging for range to disk" do
-        pending "TODO: fix this spec" do
+        begin #pending "TODO: fix this spec" do
           @bucket1.should_receive(:keys).any_number_of_times.and_return([@key1, @key2], [@key3], [])
           @key3.should_receive(:name).any_number_of_times.and_return(@key3[:name])
           @key3.should_receive(:data).any_number_of_times.and_return(@key3[:data])
@@ -225,33 +225,33 @@ describe Ralf do
 
           dir1 = '/Test/Users/test_user/S3/bucket1/log/2010/02/10'
           dir2 = '/Test/Users/test_user/S3/bucket1/log/2010/02/11'
-          File.should_receive(:exists?).once.with('#{dir1}/access_log-2010-02-10-00-05-32-ZDRFGTCKUYVJCT').and_return(false)
-          File.should_receive(:exists?).once.with('#{dir1}/access_log-2010-02-10-00-07-28-EFREUTERGRSGDH').and_return(true)
-          File.should_receive(:exists?).once.with('#{dir2}/access_log-2010-02-11-00-09-32-SDHTFTFHDDDDDH').and_return(false)
-          File.should_receive(:open).once.with(   '#{dir1}/access_log-2010-02-10-00-05-32-ZDRFGTCKUYVJCT', "w").and_return(true)
-          File.should_receive(:open).once.with(   '#{dir2}/access_log-2010-02-11-00-09-32-SDHTFTFHDDDDDH', "w").and_return(true)
-
-          File.should_receive(:dirname).with("bucket1/log/access_log-").and_return('bucket1/log')
-          File.should_receive(:expand_path).any_number_of_times { |dir| dir }
-          File.should_receive(:dirname).with('/Test/Users/test_user/S3/bucket1/log/2010/02/10').and_return('/Test/Users/test_user/S3/bucket1/log/2010/02')
-
+          File.should_receive(:exists?).once.with("#{dir1}/access_log-2010-02-10-00-05-32-ZDRFGTCKUYVJCT").and_return(false)
+          File.should_receive(:exists?).once.with("#{dir1}/access_log-2010-02-10-00-07-28-EFREUTERGRSGDH").and_return(true)
+          File.should_receive(:exists?).once.with("#{dir2}/access_log-2010-02-11-00-09-32-SDHTFTFHDDDDDH").and_return(false)
+          File.should_receive(:open).once.with(   "#{dir1}/access_log-2010-02-10-00-05-32-ZDRFGTCKUYVJCT", "w").and_return(StringIO.new)
+          File.should_receive(:open).once.with(   "#{dir2}/access_log-2010-02-11-00-09-32-SDHTFTFHDDDDDH", "w").and_return(StringIO.new)
+          
+          File.should_receive(:makedirs).twice.with(dir1)
+          File.should_receive(:makedirs).once.with(dir2)
+          
           @ralf.save_logging(@bucket1).class.should  eql(Range)
         end
       end
 
       it "should save logging if a different targetbucket is given" do
-        pending "TODO: fix this spec" do
-          @ralf.s3.should_receive(:bucket).and_return(@bucket1)
-          @bucket3 = {:name => 'bucket3'}
-          @bucket3.should_receive(:logging_info).any_number_of_times.and_return({ :enabled => false, :targetprefix => "log/", :targetbucket => 'bucket1' })
-          @bucket3.should_receive(:name).any_number_of_times.and_return(@bucket3[:name])
-          @bucket1.should_receive(:keys).any_number_of_times.and_return([@key1, @key2])
+        @ralf.s3.should_receive(:bucket).and_return(@bucket1)
+        @bucket3 = {:name => 'bucket3'}
+        @bucket3.should_receive(:logging_info).any_number_of_times.and_return({ :enabled => false, :targetprefix => "log/", :targetbucket => 'bucket1' })
+        @bucket3.should_receive(:name).any_number_of_times.and_return(@bucket3[:name])
+        @bucket1.should_receive(:keys).any_number_of_times.and_return([@key1, @key2])
 
-          File.should_receive(:expand_path).with('/Test/Users/test_user/S3/bucket3/log/2010/02/10').and_return('/Test/Users/test_user/S3/bucket3/log/2010/02/10')
-          File.should_receive(:join) { |*args| args.join('/') }
+        dir = '/Test/Users/test_user/S3/bucket3/log/2010/02/10'
+        File.should_receive(:expand_path).with(dir).and_return(dir)
+        File.should_receive(:join).any_number_of_times { |*args| args.join('/') }
 
-          @ralf.save_logging_to_local_disk(@bucket3, '2010-02-10').should eql([@key1, @key2])
-        end
+        File.should_receive(:makedirs).twice.with(dir)
+
+        @ralf.save_logging_to_local_disk(@bucket3, '2010-02-10').should eql([@key1, @key2])
       end
 
     end
