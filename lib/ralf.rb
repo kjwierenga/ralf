@@ -34,6 +34,8 @@ class Ralf
   DEFAULT_PREFERENCES = [ '/etc/ralf.yaml', '~/.ralf.yaml' ]
   ROOT = File.expand_path(File.join(File.dirname(__FILE__), ".."))
   AMAZON_LOG_FORMAT = Regexp.new('([^ ]*) ([^ ]*) \[([^\]]*)\] ([^ ]*) ([^ ]*) ([^ ]*) ([^ ]*) ([^ ]*) "([^"]*)" ([^ ]*) ([^ ]*) ([^ ]*) ([^ ]*) ([^ ]*) ([^ ]*) "([^"]*)" "([^"]*)"')
+  
+  RLIMIT_NOFILE_HEADROOM = 100 # number of file descriptors to allocate above number of logfiles
 
   attr :date
   attr :range
@@ -132,6 +134,9 @@ class Ralf
   # merge all files just downloaded for date to 1 combined file
   def merge_to_combined(bucket)
     in_files = Dir.glob(File.join(local_log_dirname(bucket), "#{local_log_file_basename_prefix(bucket)}#{date}*"))
+
+    update_rlimit_nofile(in_files.size)
+    
     File.open(File.join(@config[:out_path], output_alf_file_name(bucket)), 'w') do |out_file|
       LogMerge::Merger.merge out_file, *in_files
     end
@@ -285,6 +290,16 @@ protected
       (@config[:aws_secret_access_key] || ENV['AWS_SECRET_ACCESS_KEY']) &&
       @config[:out_path]
     )
+  end
+  
+  def update_rlimit_nofile(number_of_files)
+    new_rlimit_nofile = number_of_files + RLIMIT_NOFILE_HEADROOM
+
+    # getrlimit returns array with soft and hard limit [soft, hard]
+    rlimit_nofile = Process::getrlimit(Process::RLIMIT_NOFILE)
+    if new_rlimit_nofile > rlimit_nofile.first
+      Process.setrlimit(Process::RLIMIT_NOFILE, new_rlimit_nofile) rescue nil
+    end 
   end
 
 end

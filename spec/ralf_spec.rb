@@ -275,6 +275,10 @@ describe Ralf do
       File.should_receive(:join).any_number_of_times { |*args| args.join('/') }
       
       File.should_receive(:expand_path).with('/Test/Users/test_user/S3/bucket1/log/2010/02/10').and_return('/Test/Users/test_user/S3/bucket1/log/2010/02/10')
+      
+      # simulate small RLIMIT_NOFILE limit, then Ralf will set appropariate new RLIMIT_NOFILE
+      Process.should_receive(:getrlimit).with(Process::RLIMIT_NOFILE).and_return([10, 10])
+      Process.should_receive(:setrlimit).with(Process::RLIMIT_NOFILE, 2 + 100)
 
       @ralf.merge_to_combined(@bucket1)
 
