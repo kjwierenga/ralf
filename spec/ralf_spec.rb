@@ -128,11 +128,14 @@ describe Ralf do
 
     it "should accept a range starting with 1 date" do
       config_file_expectations
-      Date.should_receive(:today).any_number_of_times.and_return(Date.strptime('2010-02-17'))
+      Date.should_receive(:today).exactly(3).times.and_return(Date.strptime('2010-02-17'))
       ralf = Ralf.new(@default_params.merge(:date => nil, :range => '2010-02-10'))
       ralf.range.to_s.should eql('2010-02-10..2010-02-17')
+    end
 
+    it "should accept a range array with 1 date" do
       config_file_expectations
+      Date.should_receive(:today).twice.and_return(Date.strptime('2010-02-17'))
       ralf = Ralf.new(@default_params.merge(:date => nil, :range => ['2010-02-10']))
       ralf.range.to_s.should eql('2010-02-10..2010-02-17')
     end
