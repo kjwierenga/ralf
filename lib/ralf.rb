@@ -68,7 +68,7 @@ class Ralf
   end
 
   def run
-    STDOUT.puts "Processing: #{range}"
+    STDOUT.puts "Processing: #{date || range}"
     
     find_buckets_with_logging
     puts @buckets_with_logging.collect {|buc| buc.logging_info.inspect } if ENV['DEBUG']
