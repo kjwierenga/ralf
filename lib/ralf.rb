@@ -46,7 +46,7 @@ class Ralf
     @buckets_with_logging = []
 
     params = args.dup
-    if args[:range]
+    if params[:range]
       self.range = params.delete(:range)
     else
       self.date = params.delete(:date)
