@@ -26,9 +26,9 @@ require 'chronic'
 # 
 
 class Ralf
-  class NoConfigFile < StandardError ; end
+  class NoConfigFile     < StandardError ; end
   class ConfigIncomplete < StandardError ; end
-  class InvalidRange < StandardError ; end
+  class InvalidRange     < StandardError ; end
 
   DEFAULT_PREFERENCES = [ '/etc/ralf.yaml', '~/.ralf.yaml' ]
   ROOT = File.expand_path(File.join(File.dirname(__FILE__), ".."))
