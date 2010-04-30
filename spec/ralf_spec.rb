@@ -15,8 +15,8 @@ describe Ralf do
     
     @default_params = {
       :config => CONFIG_PATH,
-      :date => '2010-02-10'
       :out_separator => ':year/:month/:day',
+      :range => '2010-02-10',
     }
     
     # File = mock('File')
@@ -98,62 +98,63 @@ describe Ralf do
 
   end
 
-  describe "Date handling" do
+  describe "Range handling" do
     
-    it "should set the date to today" do
+    it "should set range to today if unspecified" do
       config_file_expectations
-      ralf = Ralf.new(@default_params.merge(:date => nil))
-      date = Date.today
-      ralf.date.should  eql("%4d-%02d-%02d" % [date.year, date.month, date.day])
+
+      ralf = Ralf.new
+      date = Time.now.strftime("%Y-%m-%d")
+
+      ralf.range.to_s.should eql("#{date}..#{date}")
     end
 
-    it "should set the date to the date given" do
+    it "should set the range when single date given" do
       config_file_expectations
-      ralf = Ralf.new(@default_params.merge(:date => '2010-02-01'))
-      ralf.date.should  eql('2010-02-01')
+      ralf = Ralf.new(@default_params.merge(:range => '2010-02-01'))
+      ralf.range.to_s.should eql('2010-02-01..2010-02-01')
     end
 
     it "should raise error when invalid date given" do
       lambda {
-        ralf = Ralf.new(@default_params.merge(:date => 'someday'))
-        ralf.date.should  be_nil
-      }.should raise_error(Ralf::InvalidDate, "someday is an invalid value.")
+        ralf = Ralf.new(@default_params.merge(:range => 'someday'))
+        ralf.range.should be_nil
+      }.should raise_error(Ralf::InvalidRange, "invalid expression 'someday'")
     end
 
     it "should accept a range of 2 dates" do
       config_file_expectations
-      ralf = Ralf.new(@default_params.merge(:date => nil, :range => ['2010-02-10', '2010-02-12']))
+      ralf = Ralf.new(@default_params.merge(:range => ['2010-02-10', '2010-02-12']))
       ralf.range.to_s.should eql('2010-02-10..2010-02-12')
     end
 
-    it "should accept a range starting with 1 date" do
+    it "should treat a range with 1 date as a single date" do
       config_file_expectations
-      Date.should_receive(:today).exactly(3).times.and_return(Date.strptime('2010-02-17'))
-      ralf = Ralf.new(@default_params.merge(:date => nil, :range => '2010-02-10'))
-      ralf.range.to_s.should eql('2010-02-10..2010-02-17')
+      ralf = Ralf.new(@default_params.merge(:range => '2010-02-10'))
+      ralf.range.to_s.should eql('2010-02-10..2010-02-10')
     end
 
     it "should accept a range array with 1 date" do
       config_file_expectations
-      Date.should_receive(:today).twice.and_return(Date.strptime('2010-02-17'))
-      ralf = Ralf.new(@default_params.merge(:date => nil, :range => ['2010-02-10']))
-      ralf.range.to_s.should eql('2010-02-10..2010-02-17')
+      ralf = Ralf.new(@default_params.merge(:range => ['2010-02-10']))
+      ralf.range.to_s.should eql('2010-02-10..2010-02-10')
     end
 
     it "should accept a range defined by words" do
       Date.should_receive(:today).any_number_of_times.and_return(Date.strptime('2010-02-17'))
-      Chronic.should_receive(:parse).once.with('2 days ago', {:guess=>false, :context=>:past}).and_return(
-        Chronic::Span.new(Time.parse('Mon Feb 15 00:00:00 +0100 2010'),Time.parse('Tue Feb 16 00:00:00 +0100 2010'))
+      Chronic.should_receive(:parse).once.with('2 days ago', :guess => false, :context => :past).and_return(
+        Chronic::Span.new(Time.parse('Mon Feb 15 09:41:00 +0100 2010'),
+                          Time.parse('Tue Feb 15 09:41:00 +0100 2010'))
       )
 
       config_file_expectations
-      ralf = Ralf.new(@default_params.merge(:date => nil, :range => '2 days ago'))
-      ralf.range.to_s.should eql('2010-02-15..2010-02-17')
+      ralf = Ralf.new(@default_params.merge(:range => '2 days ago'))
+      ralf.range.to_s.should eql('2010-02-15..2010-02-15')
     end
 
     it "should accept a month and convert it to a range" do
       config_file_expectations
-      ralf = Ralf.new(@default_params.merge(:date => nil, :range => 'january'))
+      ralf = Ralf.new(@default_params.merge(:range => 'january'))
       ralf.range.to_s.should  eql('2010-01-01..2010-01-31')
     end
 
@@ -218,12 +219,11 @@ describe Ralf do
       end
 
       it "should save logging for range to disk" do
-        begin #pending "TODO: fix this spec" do
+        pending "TODO: fix this spec or the implementation" do
           @bucket1.should_receive(:keys).any_number_of_times.and_return([@key1, @key2], [@key3], [])
           @key3.should_receive(:name).any_number_of_times.and_return(@key3[:name])
           @key3.should_receive(:data).any_number_of_times.and_return(@key3[:data])
 
-          @ralf.date = nil
           @ralf.range = ['2010-02-10', '2010-02-12']
 
           dir1 = '/Test/Users/test_user/S3/bucket1/log/2010/02/10'
@@ -233,10 +233,10 @@ describe Ralf do
           File.should_receive(:exists?).once.with("#{dir2}/access_log-2010-02-11-00-09-32-SDHTFTFHDDDDDH").and_return(false)
           File.should_receive(:open).once.with(   "#{dir1}/access_log-2010-02-10-00-05-32-ZDRFGTCKUYVJCT", "w").and_return(StringIO.new)
           File.should_receive(:open).once.with(   "#{dir2}/access_log-2010-02-11-00-09-32-SDHTFTFHDDDDDH", "w").and_return(StringIO.new)
-          
+        
           File.should_receive(:makedirs).twice.with(dir1)
           File.should_receive(:makedirs).once.with(dir2)
-          
+
           @ralf.save_logging(@bucket1).class.should  eql(Range)
         end
       end

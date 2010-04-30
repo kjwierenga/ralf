@@ -5,7 +5,6 @@ require 'ftools'
 require 'ralf/interpolation'
 require 'chronic'
 
-
 # Parameters:
 #   :config   a YAML config file, if none given it tries to open /etc/ralf.yaml or ~/.ralf.yaml
 #   :date     the date to parse _or_
@@ -29,7 +28,7 @@ require 'chronic'
 class Ralf
   class NoConfigFile < StandardError ; end
   class ConfigIncomplete < StandardError ; end
-  class InvalidDate < StandardError ; end
+  class InvalidRange < StandardError ; end
 
   DEFAULT_PREFERENCES = [ '/etc/ralf.yaml', '~/.ralf.yaml' ]
   ROOT = File.expand_path(File.join(File.dirname(__FILE__), ".."))
@@ -37,8 +36,8 @@ class Ralf
   
   RLIMIT_NOFILE_HEADROOM = 100 # number of file descriptors to allocate above number of logfiles
 
-  attr :date
-  attr :range
+  # attr :date
+  # attr :range
   attr :config
   attr_reader :s3, :buckets_with_logging
 
@@ -46,11 +45,7 @@ class Ralf
     @buckets_with_logging = []
 
     params = args.dup
-    if params[:range]
-      self.range = params.delete(:range)
-    else
-      self.date = params.delete(:date)
-    end
+    self.range = params.delete(:range)
 
     read_preferences(params.delete(:config), params)
 
@@ -68,7 +63,7 @@ class Ralf
   end
 
   def run
-    STDOUT.puts "Processing: #{date || range}"
+    STDOUT.puts "Processing: #{range}"
     
     find_buckets_with_logging
     puts @buckets_with_logging.collect {|buc| buc.logging_info.inspect } if ENV['DEBUG']
@@ -90,18 +85,13 @@ class Ralf
   end
 
   def save_logging(bucket)
-    if @range
-      range.each do |day|
-        @date = day
-        save_logging_to_local_disk(bucket, day)
-      end
-    else
+    range.each do |date|
       save_logging_to_local_disk(bucket, date)
     end
   end
 
   # Saves files to disk if they do not exists yet
-  def save_logging_to_local_disk(bucket, for_date)
+  def save_logging_to_local_disk(bucket, date)
 
     if bucket.name != bucket.logging_info[:targetbucket]
       puts "logging for '%s' is on '%s'" % [bucket.name, bucket.logging_info[:targetbucket]] if ENV['DEBUG']
@@ -110,7 +100,7 @@ class Ralf
       targetbucket = bucket
     end
 
-    search_string = "%s%s" % [bucket.logging_info[:targetprefix], for_date]
+    search_string = "%s%s" % [bucket.logging_info[:targetprefix], date]
 
     targetbucket.keys(:prefix => search_string).each do |key|
 
@@ -133,7 +123,10 @@ class Ralf
 
   # merge all files just downloaded for date to 1 combined file
   def merge_to_combined(bucket)
-    in_files = Dir.glob(File.join(local_log_dirname(bucket), "#{local_log_file_basename_prefix(bucket)}#{date}*"))
+    in_files = []
+    range.each do |date|
+      in_files += Dir.glob(File.join(local_log_dirname(bucket), "#{local_log_file_basename_prefix(bucket)}#{date}*"))
+    end
 
     update_rlimit_nofile(in_files.size)
     
@@ -154,60 +147,50 @@ class Ralf
   end
 
   def s3_organized_log_file(bucket, key)
-    File.join(log_dir(bucket).gsub(bucket.name + '/',''), out_seperator, local_log_file_basename(bucket, key))
-  end
-
-  def date
-    "%4d-%02d-%02d" % [@date.year, @date.month, @date.day] 
-  end
-
-  def date=(date)
-    if date && ! date.nil?
-      time = Chronic.parse(date, :context => :past )
-      if time 
-        @date = Date.parse(time.strftime('%Y-%m-%d'))
-      else
-        raise Ralf::InvalidDate, "#{date} is an invalid value."
-      end
-    else
-      @date = Date.today
-    end
+    File.join(log_dir(bucket).gsub(bucket.name + '/',''), out_separator, local_log_file_basename(bucket, key))
   end
 
   def range
-    Range.new(
-      Date.new(@range[:from].year, @range[:from].month, @range[:from].day),
-      Date.new(@range[:till].year, @range[:till].month, @range[:till].day)
-    )
+    raise ArgumentError unless 2 == @range.size
+    Range.new(time_to_date(@range.first), time_to_date(@range.last)) # inclusive
   end
+  
+  def range=(args)
+    args ||= []
+    args = [args] unless args.is_a?(Array)
 
-  def range=(range)
-    if range.is_a?(Array)
-      @range = {
-        :from => Chronic.parse(range[0], :context => :past),
-        :till => Chronic.parse(range[1], :context => :past) || Date.today
-      }
-    elsif range.is_a?(String) # when it's a string it can be a specific date or a period (like month)
-      begin
-        date = Date.strptime(range)
-        @range = { :from => date, :till => Date.today }
-      rescue # date raises an error
-        time = Chronic.parse(range, :context => :past, :guess => false)
-        if time.width > (3600 * 24) # this is a period
-          @range = { :from => time.begin, :till => time.end.utc }
+    range = []
+    args.each_with_index do |expr, i|
+      raise Ralf::InvalidRange, "unused extra argument '#{expr}'" if i > 1
+      if span = Chronic.parse(expr, :context => :past, :guess => false)
+        if is_more_than_a_day?(span)
+          raise Ralf::InvalidRange, "range end '#{expr}' is not a single date" if i > 0
+          range << span.begin
+          range << span.end - 1
         else
-          @range = { :from => time.begin, :till => Date.today }
+          range << span.begin
         end
+      else
+        raise Ralf::InvalidRange, "invalid expression '#{expr}'"
       end
-    else
-      raise Ralf::InvalidDate, "#{range} is an invalid value."
     end
+    
+    range = [ Date.today ] if range.empty? # empty range means today
+    range = range*2 if 1 == range.size     # single day has begin == end
+    
+    @range = range
   end
-
+  
+  def is_more_than_a_day?(span)
+    span.width > 24 * 3600
+  end
+  
   # Create a dynamic output folder
-  def out_seperator
-    if @config[:out_seperator]
-      Ralf::Interpolation.interpolate(@date, @config[:out_seperator])
+  def out_separator
+    # TODO: should this be range.begin, or range.end or should the separator
+    # be interpolated for each logfile?
+    if @config[:out_separator]
+      Ralf::Interpolation.interpolate(range.end, @config[:out_separator])
     else
       ''
     end
@@ -252,11 +235,11 @@ class Ralf
 protected
 
   def output_alf_file_name(bucket)
-    "%s_%s_%s.alf" % [@config[:out_prefix] || "s3_combined", bucket.name, date]
+    "%s_%s_%s.alf" % [@config[:out_prefix] || "s3_combined", bucket.name, range.end]
   end
 
   def output_clf_file_name(bucket)
-    "%s_%s_%s.log" % [@config[:out_prefix] || "s3_combined", bucket.name, date]
+    "%s_%s_%s.log" % [@config[:out_prefix] || "s3_combined", bucket.name, range.end]
   end
 
   def read_preferences(config_file, params = {})
@@ -292,6 +275,12 @@ protected
     )
   end
   
+private
+  
+  def time_to_date(time)
+    Date.new(time.year, time.month, time.day)
+  end
+
   def update_rlimit_nofile(number_of_files)
     new_rlimit_nofile = number_of_files + RLIMIT_NOFILE_HEADROOM
 
