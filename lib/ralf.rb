@@ -18,8 +18,8 @@ require 'chronic'
 #   :aws_secret_access_key  (required in config)
 #   :out_path               (required in config)
 #   :out_prefix             (optional, defaults to 's3_combined')
-#   :out_seperator          (optional, defaults to '') specify directory seperators (e.g. ':year/:month/:day')
-#   :organize_originals     (boolean, optional) organize asset on S3 in the same structure as :out_seperator
+#   :out_separator          (optional, defaults to '') specify directory separators (e.g. ':year/:month/:day')
+#   :organize_originals     (boolean, optional) organize asset on S3 in the same structure as :out_separator
 #                           (WARNING: there is an extra performance and cost penalty)
 
 # 
@@ -213,8 +213,8 @@ class Ralf
     end
   end
 
-  def out_seperator=(out_seperator)
-    @config[:out_seperator] = out_seperator
+  def out_separator=(out_separator)
+    @config[:out_separator] = out_separator
   end
 
   def translate_to_clf(line)
@@ -237,7 +237,7 @@ class Ralf
 
   # locations of files for this bucket and date
   def local_log_dirname(bucket)
-    File.expand_path(File.join(@config[:out_path], log_dir(bucket), out_seperator))
+    File.expand_path(File.join(@config[:out_path], log_dir(bucket), out_separator))
   end
 
   def local_log_file_basename(bucket, key)

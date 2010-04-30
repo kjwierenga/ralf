@@ -17,7 +17,7 @@ Execution:
     require 'ralf'
     r = Ralf.new(
       :config => '/my/config.yaml',
-      :out_seperator => ':year/:month/:day',
+      :out_separator => ':year/:month/:day',
       :organize_originals => true,
       :range => 'yesterday'
     )
@@ -27,7 +27,7 @@ Or run it in one go:
 
     require 'rubygems'
     require 'ralf'
-    Ralf.run(:config => '/my/config.yaml', :date => '2010-02-01', :out_seperator => ':year/:month/:day')
+    Ralf.run(:config => '/my/config.yaml', :date => '2010-02-01', :out_separator => ':year/:month/:day')
 
 
 Parameters:
@@ -43,8 +43,8 @@ Parameters:
     aws_secret_access_key:  (required in config)
     out_path:               (required in config)
     out_prefix:             (optional, defaults to 's3_combined') Prefix the output file
-    out_seperator:          (optional, defaults to '') specify directory seperators (e.g. ':year/:month/:day')
-    organize_originals:     (boolean, optional) organize asset on S3 in the same structure as :out_seperator 
+    out_separator:          (optional, defaults to '') specify directory separators (e.g. ':year/:month/:day')
+    organize_originals:     (boolean, optional) organize asset on S3 in the same structure as :out_separator 
                             (WARNING: there is an extra performance and cost penalty)
     log_file:               (optional, defaults to '/var/log/ralf.log') Logging of ralf actions.
 

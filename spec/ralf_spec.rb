@@ -15,8 +15,8 @@ describe Ralf do
     
     @default_params = {
       :config => CONFIG_PATH,
-      :out_seperator => ':year/:month/:day',
       :date => '2010-02-10'
+      :out_separator => ':year/:month/:day',
     }
     
     # File = mock('File')
@@ -301,7 +301,7 @@ describe Ralf do
       @ralf.local_log_dirname(@bucket2).should  eql(bucket2_path)
     end
 
-    it "should save to a subdir when a out_seperator is given" do
+    it "should save to a subdir when a out_separator is given" do
       path1 = '/Test/Users/test_user/S3/bucket1/log/2010/02/10'
       File.should_receive(:expand_path).once.with(path1).and_return(path1)
 
@@ -310,7 +310,7 @@ describe Ralf do
       path2 = '/Test/Users/test_user/S3/bucket1/log/2010/w06'
       File.should_receive(:expand_path).once.with(path2).and_return(path2)
 
-      @ralf.out_seperator = ':year/w:week'
+      @ralf.out_separator = ':year/w:week'
       @ralf.local_log_dirname(@bucket1).should  eql(path2)
     end
 
