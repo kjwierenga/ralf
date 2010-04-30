@@ -163,12 +163,12 @@ class Ralf
     args.each_with_index do |expr, i|
       raise Ralf::InvalidRange, "unused extra argument '#{expr}'" if i > 1
       if span = Chronic.parse(expr, :context => :past, :guess => false)
-        if is_more_than_a_day?(span)
+        if on_same_date?(span)
+          range << span.begin
+        else
           raise Ralf::InvalidRange, "range end '#{expr}' is not a single date" if i > 0
           range << span.begin
           range << span.end - 1
-        else
-          range << span.begin
         end
       else
         raise Ralf::InvalidRange, "invalid expression '#{expr}'"
@@ -181,8 +181,8 @@ class Ralf
     @range = range
   end
   
-  def is_more_than_a_day?(span)
-    span.width > 24 * 3600
+  def on_same_date?(span)
+    span.width <= 24 * 3600
   end
   
   # Create a dynamic output folder
