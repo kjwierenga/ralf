@@ -27,17 +27,15 @@ Or run it in one go:
 
     require 'rubygems'
     require 'ralf'
-    Ralf.run(:config => '/my/config.yaml', :date => '2010-02-01', :out_separator => ':year/:month/:day')
+    Ralf.run(:config => '/my/config.yaml', :range => '2010-02-01', :out_separator => ':year/:month/:day')
 
 
 Parameters:
 ----------
 
     config:   a YAML config file, if none given it tries to open /etc/ralf.yaml or ~/.ralf.yaml
-    date:     the date to parse _or_
     range:    a specific range as a string <start> (which creates a range to now) or array: [<start>] _or_ [<start>,<stop>]
               (examples: 'today'; 'yesterday'; 'january'; ['2 days ago', 'yesterday']; )
-    (note:  When :range is supplied it takes precendence over :date)
 
     aws_access_key_id:      (required in config)
     aws_secret_access_key:  (required in config)
