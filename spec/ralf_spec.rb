@@ -41,11 +41,10 @@ describe Ralf do
       non_existing_file_name = '~/a_non_existent_file.yaml'
       non_existing_file_name_path = '/Test/Users/test_user/a_non_existent_file.yaml'
       File.should_receive(:expand_path).with(non_existing_file_name).and_return(non_existing_file_name_path)
-      File.should_receive(:exists?).with(non_existing_file_name_path).and_return(false)
 
       lambda {
         ralf = Ralf.new(:config => non_existing_file_name)
-      }.should raise_error(Ralf::NoConfigFile)
+      }.should raise_error(Errno::ENOENT)
     end
 
     it "should set the preferences" do
@@ -59,23 +58,19 @@ describe Ralf do
     end
 
     it "should look for default configurations" do
-      log_file = '/var/log/ralf.log'
-      File.should_receive(:expand_path).once.with(log_file).and_return(log_file)
       File.stub(:open).and_return(StringIO.new)
-
       
-      YAML.should_receive(:load_file).with('/Test/Users/test_user/.ralf.yaml').and_return({
+      expanded_config_file_path = '/Test/Users/test_user/.ralf.yaml'
+      expanded_out_path = '/Test/Users/test_user/S3'
+      YAML.should_receive(:load_file).with(expanded_config_file_path).and_return({
         'aws_access_key_id'      => 'access_key',
         'aws_secret_access_key'  => 'secret',
-        'out_path'               => '/Test/Users/test_user/S3',
+        'out_path'               => expanded_out_path,
         'out_prefix'             => 's3_combined'
       })
-      File.should_receive(:expand_path).once.with('~/.ralf.yaml').and_return('/Test/Users/test_user/.ralf.yaml')
-      File.should_receive(:expand_path).twice.with('/Test/Users/test_user/.ralf.yaml').and_return('/Test/Users/test_user/.ralf.yaml')
-      File.should_receive(:expand_path).once.with('/etc/ralf.yaml').and_return('/etc/ralf.yaml')
-      File.should_receive(:expand_path).once.with('/Test/Users/test_user/S3').and_return('/Test/Users/test_user/S3')
-      File.should_receive(:exists?).once.with('/etc/ralf.yaml').and_return(false)
-      File.should_receive(:exists?).twice.with('/Test/Users/test_user/.ralf.yaml').and_return(true)
+      
+      File.should_receive(:expand_path).once.times.with('~/.ralf.yaml').and_return(expanded_config_file_path)
+      File.should_receive(:expand_path).once.with(expanded_out_path).and_return(expanded_out_path)
 
       ralf = Ralf.new()
     end
@@ -84,16 +79,9 @@ describe Ralf do
       ENV['AWS_ACCESS_KEY_ID']     = 'access_key'
       ENV['AWS_SECRET_ACCESS_KEY'] = 'secret'
 
-      [ [ '/etc/ralf.yaml'] * 2,
-        [ '~/.ralf.yaml', '/Test/Users/test_user/.ralf.yaml' ] ].each do |paths|
-        File.should_receive(:expand_path).once.ordered.with(paths.first).and_return(paths.last)
-        File.should_receive(:exists?).once.ordered.with(paths.last).and_return(false)
-      end
-
-      lambda {
+      # lambda {
         Ralf.new(:out_path => '/Test/Users/test_user/S3')
-      }.should_not raise_error(Ralf::ConfigIncomplete)
-
+      # }.should_not raise_error #(Ralf::ConfigIncomplete)
     end
 
   end
@@ -373,6 +361,93 @@ describe Ralf do
       @ralf.translate_to_clf('An invalid line in the logfile').should match(/^# ERROR/)
     end
 
+  end
+  
+  describe "Options parser" do
+    
+    it "should show help message" do
+      output = StringIO.new
+      options = Ralf.parse_options('-h'.split, output)
+      options.should be_nil
+      output.string.should_not be_empty
+      output.string.should include("Show this message")
+    end
+    
+    it "should parse all short options" do
+      output = StringIO.new
+      
+      arguments =
+        "-r today -a the_access_key_id -s the_secret_access_key " +
+        "-f :year/:month/:day -d /var/log/amazon_s3 -p s3_combined " +
+        "-c /my/etc/config.yaml -l /var/log/ralf.log -m"
+
+      options = Ralf.parse_options(arguments.split, output)
+      
+      [ :range, :aws_access_key_id, :aws_secret_access_key,
+        :output_separator, :out_path, :out_prefix, :log_file,
+        :organize_originals ].each do |key|
+        options.should have_key(key)
+      end
+      options[:range].should eql(['today'])
+      options[:aws_access_key_id].should eql('the_access_key_id')
+      options[:aws_secret_access_key].should eql('the_secret_access_key')
+      options[:output_separator].should eql(':year/:month/:day')
+      options[:out_path].should eql('/var/log/amazon_s3')
+      options[:out_prefix].should eql('s3_combined')
+      options[:config_file].should eql('/my/etc/config.yaml')
+      options[:log_file].should eql('/var/log/ralf.log')
+      options[:organize_originals].should be_true
+      
+      output.string.should be_empty
+    end
+    
+    it "should parse all long options" do
+      output = StringIO.new
+      
+      arguments = 
+        "--range today --aws-access-key-id the_access_key_id " +
+        "--aws-secret-access-key the_secret_access_key " +
+        "--output-dir-format :year/:month/:day --output-basedir /var/log/amazon_s3 " +
+        "--output-prefix s3_combined --config /my/etc/config.yaml " +
+        "--log-file /var/log/ralf.log --rename-originals"
+
+      options = Ralf.parse_options(arguments.split, output)
+      
+      [ :range, :aws_access_key_id, :aws_secret_access_key,
+        :output_separator, :out_path, :out_prefix, :config_file, :log_file,
+        :organize_originals ].each do |key|
+        options.should have_key(key)
+      end
+      options[:range].should eql(['today'])
+      options[:aws_access_key_id].should eql('the_access_key_id')
+      options[:aws_secret_access_key].should eql('the_secret_access_key')
+      options[:output_separator].should eql(':year/:month/:day')
+      options[:out_path].should eql('/var/log/amazon_s3')
+      options[:out_prefix].should eql('s3_combined')
+      options[:config_file].should eql('/my/etc/config.yaml')
+      options[:log_file].should eql('/var/log/ralf.log')
+      options[:organize_originals].should be_true
+      
+      output.string.should be_empty
+    end
+    
+    it "should allow two dates for range" do
+      output = StringIO.new
+      
+      options = Ralf.parse_options("--range yesterday,today".split, output)
+      
+      options.should have_key(:range)
+      options[:range].should eql(['yesterday', 'today'])
+    end
+    
+    it "should produce error for missing argument" do
+      output = StringIO.new
+      
+      lambda {
+        options = Ralf.parse_options("--range".split, output)
+      }.should raise_error(OptionParser::MissingArgument)
+    end
+    
   end
   
   def config_file_expectations

@@ -4,6 +4,7 @@ require 'logmerge'
 require 'ftools'
 require 'ralf/interpolation'
 require 'chronic'
+require 'optparse'
 
 # Parameters:
 #   :config   a YAML config file, if none given it tries to open /etc/ralf.yaml or ~/.ralf.yaml
@@ -26,11 +27,10 @@ require 'chronic'
 # 
 
 class Ralf
-  class NoConfigFile     < StandardError ; end
   class ConfigIncomplete < StandardError ; end
   class InvalidRange     < StandardError ; end
 
-  DEFAULT_PREFERENCES = [ '/etc/ralf.yaml', '~/.ralf.yaml' ]
+  USER_OR_SYSTEM_CONFIG_FILE = [ '~/.ralf.yaml', '/etc/ralf.yaml' ]
   ROOT = File.expand_path(File.join(File.dirname(__FILE__), ".."))
   AMAZON_LOG_FORMAT = Regexp.new('([^ ]*) ([^ ]*) \[([^\]]*)\] ([^ ]*) ([^ ]*) ([^ ]*) ([^ ]*) ([^ ]*) "([^"]*)" ([^ ]*) ([^ ]*) ([^ ]*) ([^ ]*) ([^ ]*) ([^ ]*) "([^"]*)" "([^"]*)"')
   
@@ -49,12 +49,95 @@ class Ralf
 
     read_preferences(params.delete(:config), params)
 
-    log_file = File.open(File.expand_path(@config[:log_file] || '/var/log/ralf.log'),
-                         File::WRONLY | File::APPEND | File::CREAT)
+    if @config[:log_file]
+      log_file = File.open(File.expand_path(@config[:log_file]), File::WRONLY | File::APPEND | File::CREAT)
+    else
+      log_file = StringIO.new
+    end
     @s3 = RightAws::S3.new(
             @config[:aws_access_key_id],
             @config[:aws_secret_access_key],
             { :logger => Logger.new(log_file) })
+  end
+  
+  def self.parse_options(args, output = STDOUT)
+    options = {}
+
+    opts = OptionParser.new do |opts|
+      opts.banner = "Usage: #{$0} [options]
+
+Download, merge and convert Amazon S3 log files for a specified date or date range.
+
+ralf reads options from '~/.ralf.yaml' or '/etc/ralf.yaml'. These files must be in YAML format.
+
+Example:
+  out_path:          /var/log/amazon_s3
+  log_file:          /var/log/ralf.log
+  aws_access_key_id: my_secret_key_id
+
+Command line options override the options loaded from the configuration file."
+
+      opts.separator ""
+      opts.separator "Specific options:"
+
+      opts.on("-r", "--range BEGIN[,END]", Array, "Date or date range to process. Supports Chronic expressions (http://chronic.rubyforge.org)") do |range|
+        options[:range] = range.compact
+      end
+      
+      opts.separator ""
+      opts.separator "Output options:"
+      opts.on("-f", "--output-dir-format FORMAT", "Output directory format, e.g. ':year/:month/:day'") do |format|
+        options[:output_separator] = format
+      end
+      
+      opts.on("-d", "--output-basedir DIR", "Base directory for output files") do |dir|
+        options[:out_path] = dir
+      end
+      
+      opts.on("-p", "--output-prefix STRING", "Prefix string for output files") do |string|
+        options[:out_prefix] = string
+      end
+      
+      opts.separator ""
+      opts.separator "Amazon options:"
+      opts.on("-a", "--aws-access-key-id AWS_ACCESS_KEY_ID",
+              "AWS Access Key Id") do |aws_access_key_id|
+        options[:aws_access_key_id] = aws_access_key_id
+      end
+      opts.on("-s", "--aws-secret-access-key AWS_SECRET_ACCESS_KEY",
+              "AWS Secret Access Key") do |aws_secret_access_key|
+        options[:aws_secret_access_key] = aws_secret_access_key
+      end
+      opts.on("-m", "--[no-]rename-originals", "Rename original log files on Amazon using '--output-dir-format' option") do |value|
+        options[:organize_originals] = value
+      end
+      
+      opts.separator ""
+      opts.separator "Config file options:"
+      opts.on("-c", "--config FILE", "Path to configuration file (.yaml)") do |file|
+        options[:config_file] = file
+      end
+      
+      opts.separator ""
+      opts.separator "Log options:"
+      opts.on("-l", "--log-file FILE", "Path to log file") do |file|
+        options[:log_file] = file
+      end
+      
+      opts.separator ""
+      opts.separator "Common options:"
+      opts.on_tail("-h", "--help", "Show this message") do
+        output.puts opts
+        return nil
+      end
+      opts.on_tail("--version", "Show version") do
+        puts OptionParser::Version.join('.')
+        return nil
+      end
+    end
+    remaining = opts.parse!(args)
+    opts.warn "Warning: unused arguments: #{remaining.join(' ')}" unless remaining.empty?
+    options
   end
 
   def self.run(params)
@@ -242,37 +325,43 @@ protected
     "%s_%s_%s.log" % [@config[:out_prefix] || "s3_combined", bucket.name, range.end]
   end
 
-  def read_preferences(config_file, params = {})
-    unless config_file
-      DEFAULT_PREFERENCES.each do |file|
-        expanded_file = File.expand_path( file ) 
-        if File.exists?( expanded_file )
-          config_file = expanded_file
-        end
+  def load_user_or_system_config_file
+    # attempt YAML load for each default file location in the specified order
+    config = nil
+    USER_OR_SYSTEM_CONFIG_FILE.each do |config_file|
+      begin
+        config = YAML.load_file(File.expand_path(config_file))
+      rescue Errno::ENOENT
       end
+      break if config
     end
+    config
+  end
 
-    if config_file && File.exists?( File.expand_path(config_file) )
-      @config = YAML.load_file( File.expand_path(config_file) )
-      
-      # define symbolize_keys! method on the instance to convert key strings to symbols
-      def @config.symbolize_keys!; h = self.dup; self.clear; h.each_pair { |k,v| self[k.to_sym] = v }; self; end
-
-      @config.symbolize_keys!
-      @config.merge!(params)
-    elsif params.size > 0
-      @config = params
+  def read_preferences(config_file, params = {})
+    if config_file
+      @config = YAML.load_file(File.expand_path(config_file)) || {}
     else
-      raise NoConfigFile, "There is no config file defined for Ralf."
+      @config = load_user_or_system_config_file || {}
     end
     
-    @config[:out_path] = File.expand_path(@config[:out_path])
+    # define symbolize_keys! method on the instance to convert key strings to symbols
+    def @config.symbolize_keys!
+      h = self.dup; self.clear; h.each_pair { |k,v| self[k.to_sym] = v }; self
+    end
 
-    raise ConfigIncomplete unless (
-      (@config[:aws_access_key_id]     || ENV['AWS_ACCESS_KEY_ID']) &&
-      (@config[:aws_secret_access_key] || ENV['AWS_SECRET_ACCESS_KEY']) &&
-      @config[:out_path]
-    )
+    @config.symbolize_keys!
+    @config.merge!(params)
+    
+    raise ConfigIncomplete.new("--aws-access-key-id required") unless
+      (@config[:aws_access_key_id] || ENV['AWS_ACCESS_KEY_ID'])
+      
+    raise ConfigError.new("--aws-secret-access-key required") unless
+      (@config[:aws_secret_access_key] || ENV['AWS_SECRET_ACCESS_KEY'])
+    
+    raise ConfigIncomplete.new("--output-path required") unless @config[:out_path]
+
+    @config[:out_path] = File.expand_path(@config[:out_path])
   end
   
 private
