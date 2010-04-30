@@ -4,7 +4,7 @@ $LOAD_PATH.unshift(File.join(File.dirname(__FILE__), '..', 'lib'))
 require 'ralf'
 
 begin
-  Ralf.run(:range => ARGV[0] || 'yesterday')
+  Ralf.run(:range => (ARGV.size > 0 ? ARGV : 'yesterday'))
 rescue => e
   STDERR.puts "Error: #{e}"
 end
