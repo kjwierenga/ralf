@@ -43,9 +43,9 @@ class Ralf
     @buckets_with_logging = []
 
     params = args.dup
-    self.range = params.delete(:range)
 
     read_preferences(params.delete(:config), params)
+    self.range = params.delete(:range)
 
     if @config[:log_file]
       log_file = File.open(File.expand_path(@config[:log_file]), File::WRONLY | File::APPEND | File::CREAT)
@@ -192,13 +192,21 @@ class Ralf
     range = []
     args.each_with_index do |expr, i|
       raise Ralf::InvalidRange, "unused extra argument '#{expr}'" if i > 1
-      if span = Chronic.parse(expr, :context => :past, :guess => false)
+      
+      chronic_options = { :context => :past, :guess => false }
+      if @config[:now]
+        chronic_options.merge!(:now => Chronic.parse(@config[:now], :context => :past))
+      end
+      
+      puts @config[:now].inspect
+      
+      if span = Chronic.parse(expr, chronic_options)
         if on_same_date?(span)
           range << span.begin
         else
           raise Ralf::InvalidRange, "range end '#{expr}' is not a single date" if i > 0
           range << span.begin
-          range << span.end - 1
+          range << span.end + (@config[:now] ? 0 : -1)
         end
       else
         raise Ralf::InvalidRange, "invalid expression '#{expr}'"
@@ -286,6 +294,7 @@ private
   end
 
   def read_preferences(config_file, params = {})
+    @config = {}
     if config_file
       @config = YAML.load_file(File.expand_path(config_file)) || {}
     else

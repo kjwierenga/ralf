@@ -145,6 +145,16 @@ describe Ralf do
       ralf = Ralf.new(@default_params.merge(:range => 'january'))
       ralf.range.to_s.should  eql('2010-01-01..2010-01-31')
     end
+    
+    it "should allow 'this month' with base 'yesterday'" do
+      config_file_expectations
+      Time.should_receive(:now).exactly(3).times.and_return(Time.parse('Sat May 01 16:31:00 +0100 2010'))
+      ralf = Ralf.new(@default_params.merge(:range => 'this month', :now => 'yesterday'))
+      ralf.range.to_s.should  eql('2010-04-01..2010-04-30')
+      ralf = nil
+      
+      puts @default_params.inspect
+    end
 
   end
 

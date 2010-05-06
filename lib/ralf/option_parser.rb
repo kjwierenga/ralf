@@ -27,6 +27,10 @@ Command line options override the options loaded from the configuration file."
         options[:range] = range.compact
       end
 
+      opts.on("-t", "--now TIME", "Date to use as base range off. Supports Chronic expressions (http://chronic.rubyforge.org)") do |now|
+        options[:now] = now
+      end
+
       opts.separator ""
       opts.separator "Output options:"
       opts.on("-f", "--output-dir-format FORMAT", "Output directory format, e.g. ':year/:month/:day'") do |format|
@@ -48,7 +52,7 @@ Command line options override the options loaded from the configuration file."
       opts.on("-b", "--buckets x,y,z", Array, "List of buckets for which to process logfiles") do |buckets|
         options[:buckets] = buckets.compact
       end
-
+      
       opts.separator ""
       opts.separator "Amazon options:"
       opts.on("-a", "--aws-access-key-id AWS_ACCESS_KEY_ID",
