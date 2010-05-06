@@ -40,6 +40,14 @@ Command line options override the options loaded from the configuration file."
       opts.on("-p", "--output-prefix STRING", "Prefix string for output files") do |string|
         options[:output_prefix] = string
       end
+      
+      opts.on("-l", "--[no-]list-buckets", "List buckets that have logging enabled") do |value|
+        options[:list_buckets] = value
+      end
+      
+      opts.on("-b", "--buckets x,y,z", Array, "List of buckets for which to process logfiles") do |buckets|
+        options[:buckets] = buckets.compact
+      end
 
       opts.separator ""
       opts.separator "Amazon options:"
@@ -63,7 +71,7 @@ Command line options override the options loaded from the configuration file."
 
       opts.separator ""
       opts.separator "Log options:"
-      opts.on("-l", "--log-file FILE", "Path to log file") do |file|
+      opts.on("-e", "--log-file FILE", "Path to log file") do |file|
         options[:log_file] = file
       end
 

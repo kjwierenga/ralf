@@ -60,29 +60,53 @@ class Ralf
 
   def self.run(params)
     ralf = Ralf.new(params)
-    ralf.run
+    
+    if ralf.config[:list_buckets]
+      ralf.list_buckets(ralf.config[:buckets])
+    else
+      ralf.run
+    end
   end
 
   def run
     STDOUT.puts "Processing: #{range.begin == range.end ? range.begin : range}"
     
-    find_buckets_with_logging
-    puts @buckets_with_logging.collect {|buc| buc.logging_info.inspect } if ENV['DEBUG']
+    find_buckets_with_logging(@config[:buckets])
+    STDOUT.puts @buckets_with_logging.collect {|buc| buc.logging_info.inspect } if ENV['DEBUG']
     @buckets_with_logging.each do |bucket|
       save_logging(bucket)
       merge_to_combined(bucket)
       convert_alt_to_clf(bucket)
     end
   end
+  
+  def list_buckets(names)
+    find_buckets(names).each do |bucket|
+      STDOUT.puts "Bucket '#{bucket.name}', logging to #{bucket.logging_info[:targetbucket]}/#{bucket.logging_info[:targetprefix]}"
+    end
+  end
 
   # Finds all buckets (in scope of provided credentials) which have logging enabled
-  def find_buckets_with_logging
-    @s3.buckets.each do |bucket|
-      logging_params = bucket.logging_info
-      if logging_params[:enabled]
-        @buckets_with_logging << bucket
+  def find_buckets(names)
+    # find specified buckets
+    if names
+      names.map do |name|
+        bucket = @s3.bucket(name)
+        STDOUT.puts "Bucket '#{name}' not found." if bucket.nil?
+        bucket
       end
+    else
+      @s3.buckets
     end
+  end
+
+  def find_buckets_with_logging(names = nil)
+    buckets = find_buckets(names)
+
+    # remove buckets that don't have logging enabled
+    @buckets_with_logging = buckets.map do |bucket|
+      bucket.logging_info[:enabled] ? bucket : nil
+    end.compact
   end
 
   def save_logging(bucket)
@@ -233,7 +257,7 @@ class Ralf
     bucket.logging_info[:targetprefix].split('/').last
   end
 
-protected
+private
 
   def output_alf_file_name(bucket)
     "%s_%s_%s.alf" % [@config[:output_prefix] || "s3_combined", bucket.name, range.end]

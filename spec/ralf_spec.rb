@@ -154,19 +154,19 @@ describe Ralf do
       config_file_expectations
       
       @ralf = Ralf.new(@default_params)
-      @bucket1 = {:name => 'bucket1'}
-      @bucket1.should_receive(:logging_info).any_number_of_times.and_return({ :enabled => true, :targetprefix => "log/access_log-", :targetbucket => @bucket1[:name] })
-      @bucket1.should_receive(:name).any_number_of_times.and_return(@bucket1[:name])
-      @bucket2 = {:name => 'bucket2'}
-      @bucket2.should_receive(:logging_info).any_number_of_times.and_return({ :enabled => false, :targetprefix => "log/", :targetbucket => @bucket2[:name] })
-      @bucket2.should_receive(:name).any_number_of_times.and_return(@bucket2[:name])
+      @bucket1 = mock('bucket1')
+      @bucket1.should_receive(:logging_info).any_number_of_times.and_return({ :enabled => true, :targetprefix => "log/access_log-", :targetbucket => 'bucket1' })
+      @bucket1.should_receive(:name).any_number_of_times.and_return('bucket1')
+      @bucket2 = mock('bucket2')
+      @bucket2.should_receive(:logging_info).any_number_of_times.and_return({ :enabled => false, :targetprefix => "log/", :targetbucket => 'bucket2' })
+      @bucket2.should_receive(:name).any_number_of_times.and_return('bucket2')
     end
 
     it "should find buckets with logging enabled" do
       @ralf.s3.should_receive(:buckets).once.and_return([@bucket1, @bucket2])
 
-      @ralf.find_buckets_with_logging.should  eql([@bucket1, @bucket2])
-      @ralf.buckets_with_logging.should       eql([@bucket1])
+      @ralf.find_buckets_with_logging.should eql([@bucket1])
+      @ralf.buckets_with_logging.should      eql([@bucket1])
     end
 
     it "should return the new organized path" do

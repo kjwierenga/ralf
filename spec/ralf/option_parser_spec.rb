@@ -14,9 +14,18 @@ describe Ralf::OptionParser do
       :output_basedir        => [ '-d', '--output-basedir',        '/var/log/amazon_s3' ],
       :output_prefix         => [ '-p', '--output-prefix',         's3_combined' ],
       :config_file           => [ '-c', '--config-file',           '/my/etc/config.yaml' ],
-      :log_file              => [ '-l', '--log-file',              '/var/log/ralf.log' ],
+      :log_file              => [ '-e', '--log-file',              '/var/log/ralf.log' ],
       :rename_bucket_keys    => [ '-m', '--rename-bucket-keys',    nil ],
+      :buckets               => [ '-b', '--buckets',               [ 'bucket1.mydomain.net', 'bucket2.mydomain.net' ] ],
+      :list_buckets          => [ '-l', '--list-buckets',          nil ],
     }
+  end
+  
+  def to_argv(arguments, short = true)
+    arguments.map { |k,v|
+      arg = v[2].is_a?(Array) ? v[2].join(',') : v[2]
+      [ (short ? v[0] : v[1]), arg ].compact
+    }.flatten
   end
   
   it "should show help message" do
@@ -30,12 +39,12 @@ describe Ralf::OptionParser do
   it "should parse all options short or long" do
     output = StringIO.new
     
-    short_options = @valid_arguments.map{|k,v| [v[0], v[2]].compact}.flatten
-    long_options  = @valid_arguments.map{|k,v| [v[1], v[2]].compact}.flatten
+    short_options = to_argv(@valid_arguments, true)
+    long_options  = to_argv(@valid_arguments, false)
 
     [short_options, long_options].each do |the_options|
       options = Ralf::OptionParser.parse(the_options, output)
-    
+      
       @valid_arguments.each do |sym, opts|
         options.should have_key(sym)
         options[sym].should eql(opts[2] || true)
