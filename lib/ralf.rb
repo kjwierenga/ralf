@@ -82,7 +82,12 @@ class Ralf
   
   def list_buckets(names)
     find_buckets(names).each do |bucket|
-      STDOUT.puts "Bucket '#{bucket.name}', logging to #{bucket.logging_info[:targetbucket]}/#{bucket.logging_info[:targetprefix]}"
+      STDOUT.print "#{bucket.name}"
+      if bucket.logging_info[:enabled]
+        STDOUT.puts " [#{bucket.logging_info[:targetbucket]}/#{bucket.logging_info[:targetprefix]}]"
+      else
+        STDOUT.puts " [-]"
+      end
     end
   end
 
