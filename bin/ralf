@@ -2,9 +2,10 @@
 $LOAD_PATH.unshift(File.join(File.dirname(__FILE__), '..', 'lib'))
 
 require 'ralf'
+require 'ralf/option_parser'
 
 begin
-  if options = Ralf.parse_options(ARGV)
+  if options = Ralf::OptionParser.parse(ARGV)
     Ralf.run(options)
   end
 rescue => e

@@ -4,7 +4,6 @@ require 'logmerge'
 require 'ftools'
 require 'ralf/interpolation'
 require 'chronic'
-require 'optparse'
 
 # Parameters:
 #   :config   a YAML config file, if none given it tries to open /etc/ralf.yaml or ~/.ralf.yaml
@@ -16,10 +15,10 @@ require 'optparse'
 # These params are also config params (supplied in the params hash, they take precedence over the config file)
 #   :aws_access_key_id      (required in config)
 #   :aws_secret_access_key  (required in config)
-#   :out_path               (required in config)
-#   :out_prefix             (optional, defaults to 's3_combined')
+#   :output_basedir               (required in config)
+#   :output_prefix             (optional, defaults to 's3_combined')
 #   :out_separator          (optional, defaults to '') specify directory separators (e.g. ':year/:month/:day')
-#   :organize_originals     (boolean, optional) organize asset on S3 in the same structure as :out_separator
+#   :rename_bucket_keys     (boolean, optional) organize asset on S3 in the same structure as :out_separator
 #                           (WARNING: there is an extra performance and cost penalty)
 
 # 
@@ -58,86 +57,6 @@ class Ralf
             @config[:aws_access_key_id],
             @config[:aws_secret_access_key],
             { :logger => Logger.new(log_file) })
-  end
-  
-  def self.parse_options(args, output = STDOUT)
-    options = {}
-
-    opts = OptionParser.new do |opts|
-      opts.banner = "Usage: #{$0} [options]
-
-Download, merge and convert Amazon S3 log files for a specified date or date range.
-
-ralf reads options from '~/.ralf.yaml' or '/etc/ralf.yaml'. These files must be in YAML format.
-
-Example:
-  out_path:          /var/log/amazon_s3
-  log_file:          /var/log/ralf.log
-  aws_access_key_id: my_secret_key_id
-
-Command line options override the options loaded from the configuration file."
-
-      opts.separator ""
-      opts.separator "Specific options:"
-
-      opts.on("-r", "--range BEGIN[,END]", Array, "Date or date range to process. Supports Chronic expressions (http://chronic.rubyforge.org)") do |range|
-        options[:range] = range.compact
-      end
-      
-      opts.separator ""
-      opts.separator "Output options:"
-      opts.on("-f", "--output-dir-format FORMAT", "Output directory format, e.g. ':year/:month/:day'") do |format|
-        options[:output_separator] = format
-      end
-      
-      opts.on("-d", "--output-basedir DIR", "Base directory for output files") do |dir|
-        options[:out_path] = dir
-      end
-      
-      opts.on("-p", "--output-prefix STRING", "Prefix string for output files") do |string|
-        options[:out_prefix] = string
-      end
-      
-      opts.separator ""
-      opts.separator "Amazon options:"
-      opts.on("-a", "--aws-access-key-id AWS_ACCESS_KEY_ID",
-              "AWS Access Key Id") do |aws_access_key_id|
-        options[:aws_access_key_id] = aws_access_key_id
-      end
-      opts.on("-s", "--aws-secret-access-key AWS_SECRET_ACCESS_KEY",
-              "AWS Secret Access Key") do |aws_secret_access_key|
-        options[:aws_secret_access_key] = aws_secret_access_key
-      end
-      opts.on("-m", "--[no-]rename-originals", "Rename original log files on Amazon using '--output-dir-format' option") do |value|
-        options[:organize_originals] = value
-      end
-      
-      opts.separator ""
-      opts.separator "Config file options:"
-      opts.on("-c", "--config FILE", "Path to configuration file (.yaml)") do |file|
-        options[:config_file] = file
-      end
-      
-      opts.separator ""
-      opts.separator "Log options:"
-      opts.on("-l", "--log-file FILE", "Path to log file") do |file|
-        options[:log_file] = file
-      end
-      
-      opts.separator ""
-      opts.separator "Common options:"
-      opts.on_tail("-h", "--help", "Show this message") do
-        output.puts opts
-        return nil
-      end
-      opts.on_tail("--version", "Show version") do
-        puts OptionParser::Version.join('.')
-        return nil
-      end
-    end
-    remaining = opts.parse!(args)
-    opts.warn "Warning: unused arguments: #{remaining.join(' ')}" unless remaining.empty?
-    options
   end
 
   def self.run(params)
@@ -197,7 +116,7 @@ Command line options override the options loaded from the configuration file."
         puts "File exists #{local_log_file}" if ENV['DEBUG']
       end
 
-      if @config[:organize_originals]
+      if @config[:rename_bucket_keys]
         puts "moving #{key.name} to #{s3_organized_log_file(bucket, key)}" if ENV['DEBUG']
         key.move(s3_organized_log_file(bucket, key))
       end
@@ -213,15 +132,15 @@ Command line options override the options loaded from the configuration file."
 
     update_rlimit_nofile(in_files.size)
     
-    File.open(File.join(@config[:out_path], output_alf_file_name(bucket)), 'w') do |out_file|
+    File.open(File.join(@config[:output_basedir], output_alf_file_name(bucket)), 'w') do |out_file|
       LogMerge::Merger.merge out_file, *in_files
     end
   end
 
   # Convert Amazon log files to Apache CLF
   def convert_alt_to_clf(bucket)
-    out_file = File.open(File.join(@config[:out_path], output_clf_file_name(bucket)), 'w')
-    File.open(File.join(@config[:out_path], output_alf_file_name(bucket)), 'r') do |in_file|
+    out_file = File.open(File.join(@config[:output_basedir], output_clf_file_name(bucket)), 'w')
+    File.open(File.join(@config[:output_basedir], output_alf_file_name(bucket)), 'r') do |in_file|
       while (line = in_file.gets)
         out_file.puts(translate_to_clf(line))
       end
@@ -303,7 +222,7 @@ Command line options override the options loaded from the configuration file."
 
   # locations of files for this bucket and date
   def local_log_dirname(bucket)
-    File.expand_path(File.join(@config[:out_path], log_dir(bucket), out_separator))
+    File.expand_path(File.join(@config[:output_basedir], log_dir(bucket), out_separator))
   end
 
   def local_log_file_basename(bucket, key)
@@ -318,11 +237,11 @@ Command line options override the options loaded from the configuration file."
 protected
 
   def output_alf_file_name(bucket)
-    "%s_%s_%s.alf" % [@config[:out_prefix] || "s3_combined", bucket.name, range.end]
+    "%s_%s_%s.alf" % [@config[:output_prefix] || "s3_combined", bucket.name, range.end]
   end
 
   def output_clf_file_name(bucket)
-    "%s_%s_%s.log" % [@config[:out_prefix] || "s3_combined", bucket.name, range.end]
+    "%s_%s_%s.log" % [@config[:output_prefix] || "s3_combined", bucket.name, range.end]
   end
 
   def load_user_or_system_config_file
@@ -359,9 +278,9 @@ protected
     raise ConfigError.new("--aws-secret-access-key required") unless
       (@config[:aws_secret_access_key] || ENV['AWS_SECRET_ACCESS_KEY'])
     
-    raise ConfigIncomplete.new("--output-path required") unless @config[:out_path]
+    raise ConfigIncomplete.new("--output-basedir required") unless @config[:output_basedir]
 
-    @config[:out_path] = File.expand_path(@config[:out_path])
+    @config[:output_basedir] = File.expand_path(@config[:output_basedir])
   end
   
 private
