@@ -260,11 +260,11 @@ class Ralf
 private
 
   def output_alf_file_name(bucket)
-    "%s_%s_%s.alf" % [@config[:output_prefix] || "s3_combined", bucket.name, range.end]
+    "%s%s_%s.alf" % [@config[:output_prefix] || "", bucket.name, range.end]
   end
 
   def output_clf_file_name(bucket)
-    "%s_%s_%s.log" % [@config[:output_prefix] || "s3_combined", bucket.name, range.end]
+    "%s%s_%s.log" % [@config[:output_prefix] || "", bucket.name, range.end]
   end
 
   def load_user_or_system_config_file
@@ -301,9 +301,7 @@ private
     raise ConfigError.new("--aws-secret-access-key required") unless
       (@config[:aws_secret_access_key] || ENV['AWS_SECRET_ACCESS_KEY'])
     
-    raise ConfigIncomplete.new("--output-basedir required") unless @config[:output_basedir]
-
-    @config[:output_basedir] = File.expand_path(@config[:output_basedir])
+    @config[:output_basedir] = File.expand_path(@config[:output_basedir] || '.')
   end
   
 private

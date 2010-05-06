@@ -66,7 +66,7 @@ describe Ralf do
         'aws_access_key_id'      => 'access_key',
         'aws_secret_access_key'  => 'secret',
         'output_basedir'         => expanded_out_path,
-        'output_prefix'             => 's3_combined'
+        'output_prefix'          => 's3_combined_'
       })
       
       File.should_receive(:expand_path).once.times.with('~/.ralf.yaml').and_return(expanded_config_file_path)
