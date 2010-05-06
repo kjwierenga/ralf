@@ -4,6 +4,8 @@ require 'rake'
 begin
   require 'jeweler'
   Jeweler::Tasks.new do |gem|
+    # gem is a Gem::Specification... see http://www.rubygems.org/read/chapter/20 for additional settings
+
     gem.name = "ralf"
     gem.summary = "Retrieve Amazon Log Files"
     gem.description = <<-EOF
@@ -13,12 +15,12 @@ begin
     gem.homepage = "http://github.com/kjwierenga/ralf"
     gem.authors = ["Klaas Jan Wierenga", "Leon Berenschot"]
 
-    gem.add_development_dependency "rspec", ">= 1.2.9"
-    # gem is a Gem::Specification... see http://www.rubygems.org/read/chapter/20 for additional settings
+    gem.add_development_dependency 'rspec',   '>= 1.3.0'
+    gem.add_development_dependency 'fakeweb', '>= 1.2.8'
 
-    gem.add_dependency('right_aws', '>= 1.10.0')
-    gem.add_dependency('logmerge',  '>= 1.0.0')
-    gem.add_dependency('chronic',  '>= 0.2.3')
+    gem.add_dependency 'right_aws', '>= 1.10.0'
+    gem.add_dependency 'logmerge',  '>= 1.0.2'
+    gem.add_dependency 'chronic',   '>= 0.2.3'
 
     gem.rdoc_options << '--exclude' << '.'
     gem.has_rdoc = false
