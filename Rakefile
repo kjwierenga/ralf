@@ -11,7 +11,7 @@ begin
     gem.description = <<-EOF
       Download logfiles from Amazon S3 buckets to local disk and combine them in one Apache CLF per bucket
     EOF
-    gem.email = "k.j.wierenga@gmail.com"
+    gem.email = [ "k.j.wierenga@gmail.com", "leonb@beriedata.nl" ]
     gem.homepage = "http://github.com/kjwierenga/ralf"
     gem.authors = ["Klaas Jan Wierenga", "Leon Berenschot"]
 
