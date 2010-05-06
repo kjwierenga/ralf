@@ -30,7 +30,6 @@ class Ralf
   class InvalidRange     < StandardError ; end
 
   USER_OR_SYSTEM_CONFIG_FILE = [ '~/.ralf.yaml', '/etc/ralf.yaml' ]
-  ROOT = File.expand_path(File.join(File.dirname(__FILE__), ".."))
   AMAZON_LOG_FORMAT = Regexp.new('([^ ]*) ([^ ]*) \[([^\]]*)\] ([^ ]*) ([^ ]*) ([^ ]*) ([^ ]*) ([^ ]*) "([^"]*)" ([^ ]*) ([^ ]*) ([^ ]*) ([^ ]*) ([^ ]*) ([^ ]*) "([^"]*)" "([^"]*)"')
   
   RLIMIT_NOFILE_HEADROOM = 100 # number of file descriptors to allocate above number of logfiles
