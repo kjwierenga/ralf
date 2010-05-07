@@ -85,8 +85,8 @@ Command line options override the options loaded from the configuration file."
         output.puts opts
         return nil
       end
-      opts.on_tail("--version", "Show version") do
-        puts ::OptionParser::Version.join('.')
+      opts.on_tail("--version", "Show version.") do
+        puts File.read(File.join(File.dirname(__FILE__), '..', '..', 'VERSION'))
         return nil
       end
     end
