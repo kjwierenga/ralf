@@ -17,8 +17,8 @@ require 'chronic'
 #   :aws_secret_access_key  (required in config)
 #   :output_basedir               (required in config)
 #   :output_prefix             (optional, defaults to 's3_combined')
-#   :out_separator          (optional, defaults to '') specify directory separators (e.g. ':year/:month/:day')
-#   :rename_bucket_keys     (boolean, optional) organize asset on S3 in the same structure as :out_separator
+#   :output_dir_format          (optional, defaults to '') specify directory separators (e.g. ':year/:month/:day')
+#   :rename_bucket_keys     (boolean, optional) organize asset on S3 in the same structure as :output_dir_format
 #                           (WARNING: there is an extra performance and cost penalty)
 
 # 
@@ -177,7 +177,7 @@ class Ralf
   end
 
   def s3_organized_log_file(bucket, key)
-    File.join(log_dir(bucket).gsub(bucket.name + '/',''), out_separator, local_log_file_basename(bucket, key))
+    File.join(log_dir(bucket).gsub(bucket.name + '/',''), output_dir_format, local_log_file_basename(bucket, key))
   end
 
   def range
@@ -224,18 +224,18 @@ class Ralf
   end
   
   # Create a dynamic output folder
-  def out_separator
+  def output_dir_format
     # TODO: should this be range.begin, or range.end or should the separator
     # be interpolated for each logfile?
-    if @config[:out_separator]
-      Ralf::Interpolation.interpolate(range.end, @config[:out_separator])
+    if @config[:output_dir_format]
+      Ralf::Interpolation.interpolate(range.end, @config[:output_dir_format])
     else
       ''
     end
   end
 
-  def out_separator=(out_separator)
-    @config[:out_separator] = out_separator
+  def output_dir_format=(output_dir_format)
+    @config[:output_dir_format] = output_dir_format
   end
 
   def translate_to_clf(line)
@@ -258,7 +258,7 @@ class Ralf
 
   # locations of files for this bucket and date
   def local_log_dirname(bucket)
-    File.expand_path(File.join(@config[:output_basedir], log_dir(bucket), out_separator))
+    File.expand_path(File.join(@config[:output_basedir], log_dir(bucket), output_dir_format))
   end
 
   def local_log_file_basename(bucket, key)
