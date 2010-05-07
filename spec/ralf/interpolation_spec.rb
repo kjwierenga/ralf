@@ -4,13 +4,13 @@ require 'ralf/interpolation'
 
 describe Ralf::Interpolation do
   before(:all) do
-    @date = Date.strptime('2010-02-10')
+    @date = Date.strptime('2010-02-09')
   end
 
   [
     [':year', '2010'],
     [':month',  '02'],
-    [':day',    '10'],
+    [':day',    '09'],
     [':week',   '06']
   ].each do |match, result|
     it "should replace '#{match}' with '#{result}'" do

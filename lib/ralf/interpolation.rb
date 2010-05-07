@@ -24,7 +24,7 @@ class Ralf
     end
 
     def day
-      @date.day.to_s
+      "%02d" % @date.day
     end
 
     def month
