@@ -21,37 +21,44 @@ Example:
 Command line options override the options loaded from the configuration file."
 
       opts.separator ""
-      opts.separator "Specific options:"
-
-      opts.on("-r", "--range BEGIN[,END]", Array, "Date or date range to process.") do |range|
+      opts.separator "Input options:"
+      
+      opts.on("-b", "--buckets x,y,z", Array, "List of buckets for which to process logfiles. Optional, defaults to all buckets for user.") do |buckets|
+        options[:buckets] = buckets.compact
+      end
+      opts.on("-r", "--range BEGIN[,END]", Array, "Date or date range to process. Optional, defaults to 'today'") do |range|
         options[:range] = range.compact
       end
-
-      opts.on("-t", "--now TIME", "Date to use as base range off.") do |now|
+      opts.on("-t", "--now TIME", "Date to use as base range off. Optional, defaults to 'today'") do |now|
         options[:now] = now
       end
       opts.separator "You can use Chronic expressions for '--range' and '--now'. See http://chronic.rubyforge.org."
 
       opts.separator ""
       opts.separator "Output options:"
-      opts.on("-f", "--output-dir-format FORMAT", "Output directory format, e.g. ':year/:month/:day'") do |format|
-        options[:output_dir_format] = format
+
+      opts.on("-o", "--output-file FORMAT", "Output file format, e.g. '/var/log/s3/:year/:month/:bucket.log'") do |format|
+        options[:output_file_format] = format
+      end
+      
+      opts.on("-x", "--cache-dir FORMAT", "Directories to cache downloaded log files, e.g. '/var/run/s3_cache/:year/:month/:day/:bucket'") do |format|
+        options[:cache_dir_format] = format
       end
 
-      opts.on("-o", "--output-basedir DIR", "Base directory for output files.") do |dir|
-        options[:output_basedir] = dir
-      end
+      # opts.on("-f", "--output-dir-format FORMAT", "Output directory format, e.g. ':year/:month/:day'") do |format|
+      #   options[:output_dir_format] = format
+      # end
 
-      opts.on("-p", "--output-prefix STRING", "Prefix string for output files.") do |string|
-        options[:output_prefix] = string
-      end
+      # opts.on("-o", "--output-basedir DIR", "Base directory for output files.") do |dir|
+      #   options[:output_basedir] = dir
+      # end
+
+      # opts.on("-p", "--output-prefix STRING", "Prefix string for output files.") do |string|
+      #   options[:output_prefix] = string
+      # end
       
       opts.on("-l", "--[no-]list", "List buckets that have logging enabled.") do |value|
         options[:list] = value
-      end
-      
-      opts.on("-b", "--buckets x,y,z", Array, "List of buckets for which to process logfiles.") do |buckets|
-        options[:buckets] = buckets.compact
       end
       
       opts.separator ""
@@ -70,19 +77,16 @@ Command line options override the options loaded from the configuration file."
       # end
 
       opts.separator ""
-      opts.separator "Config file options:"
-      opts.on("-c", "--config-file FILE", "Path to configuration YAML file.") do |file|
-        options[:config_file] = file
-      end
-
-      opts.separator ""
       opts.separator "Debug options:"
       opts.on("-d", "--[no-]debug [aws]", "Show debug messages.") do |aws|
         options[:debug] = aws || true
       end
-      # opts.on("-x", "--[no-]aws-debug", "Show S3 debug messages.") do |value|
-      #   options[:aws_debug] = value
-      # end
+
+      opts.separator ""
+      opts.separator "Config file options:"
+      opts.on("-c", "--config-file FILE", "Path to configuration YAML file.") do |file|
+        options[:config_file] = file
+      end
 
       opts.separator ""
       opts.separator "Common options:"
@@ -90,8 +94,8 @@ Command line options override the options loaded from the configuration file."
         output.puts opts
         return nil
       end
-      opts.on_tail("--version", "Show version.") do
-        puts File.read(File.join(File.dirname(__FILE__), '..', '..', 'VERSION'))
+      opts.on_tail("-v", "--version", "Show version.") do
+        output.print File.read(File.join(File.dirname(__FILE__), '..', '..', 'VERSION'))
         return nil
       end
     end

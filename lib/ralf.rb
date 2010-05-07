@@ -91,6 +91,7 @@ class Ralf
   
   def list_buckets(names)
     puts "Listing buckets..." if config[:debug]
+    
     find_buckets(names).each do |bucket|
       logging_info = bucket.logging_info
       print "#{bucket.name}"
