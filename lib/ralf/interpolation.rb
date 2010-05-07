@@ -20,7 +20,7 @@ class Ralf
     end
 
     def week
-      "%02d" % @date.cweek.to_s
+      "%02d" % @date.cweek
     end
 
     def day
@@ -32,7 +32,7 @@ class Ralf
     end
 
     def year
-      @date.year.to_s
+      "%04d" % @date.year
     end
 
   end
