@@ -119,27 +119,30 @@ class Ralf
   end
 
   def save_logging(bucket)
+    logging_info = bucket.logging_info
     range.each do |date|
-      save_logging_to_local_disk(bucket, date)
+      save_logging_to_local_disk(bucket, logging_info, date)
     end
   end
 
   # Saves files to disk if they do not exists yet
-  def save_logging_to_local_disk(bucket, date)
+  def save_logging_to_local_disk(bucket, logging_info, date)
 
-    if bucket.name != bucket.logging_info[:targetbucket]
-      puts "logging for '%s' is on '%s'" % [bucket.name, bucket.logging_info[:targetbucket]] if ENV['DEBUG']
-      targetbucket = @s3.bucket(bucket.logging_info[:targetbucket])
+    if bucket.name != logging_info[:targetbucket]
+      puts "logging for '%s' is on '%s'" % [bucket.name, logging_info[:targetbucket]] if ENV['DEBUG']
+      targetbucket = @s3.bucket(logging_info[:targetbucket])
     else
       targetbucket = bucket
     end
 
-    search_string = "%s%s" % [bucket.logging_info[:targetprefix], date]
+    File.makedirs(local_log_dirname(bucket.name, logging_info[:targetprefix]))
 
+    search_string = "%s%s" % [logging_info[:targetprefix], date]
     targetbucket.keys(:prefix => search_string).each do |key|
 
-      File.makedirs(local_log_dirname(bucket))
-      local_log_file = File.expand_path(File.join(local_log_dirname(bucket), local_log_file_basename(bucket, key)))
+      local_log_file = File.expand_path(File.join(
+        local_log_dirname(bucket.name, logging_info[:targetprefix]),
+        local_log_file_basename(logging_info[:targetprefix], key.name)))
 
       unless File.exists?(local_log_file)
         puts "Writing #{local_log_file}" if ENV['DEBUG']
@@ -149,8 +152,8 @@ class Ralf
       end
 
       if @config[:rename_bucket_keys]
-        puts "moving #{key.name} to #{s3_organized_log_file(bucket, key)}" if ENV['DEBUG']
-        key.move(s3_organized_log_file(bucket, key))
+        puts "moving #{key.name} to #{s3_organized_log_file(bucket.name, logging_info[:targetprefix], key)}" if ENV['DEBUG']
+        key.move(s3_organized_log_file(bucket.name, logging_info[:targetprefix], key))
       end
     end
   end
@@ -159,9 +162,10 @@ class Ralf
   def merge_to_combined(bucket)
     puts "Merging..." if ENV['DEBUG']
     
+    logging_info = bucket.logging_info
     in_files = []
     range.each do |date|
-      in_files += Dir.glob(File.join(local_log_dirname(bucket), "#{local_log_file_basename_prefix(bucket)}#{date}*"))
+      in_files += Dir.glob(File.join(local_log_dirname(bucket.name, logging_info[:targetprefix]), "#{local_log_file_basename_prefix(logging_info[:targetprefix])}#{date}*"))
     end
 
     update_rlimit_nofile(in_files.size)
@@ -184,8 +188,8 @@ class Ralf
     out_file.close
   end
 
-  def s3_organized_log_file(bucket, key)
-    File.join(log_dir(bucket).gsub(bucket.name + '/',''), output_dir_format, local_log_file_basename(bucket, key))
+  def s3_organized_log_file(bucket_name, targetprefix, key)
+    File.join(log_dir(bucket_name, targetprefix).gsub(bucket_name + '/',''), output_dir_format, local_log_file_basename(targetprefix, key))
   end
 
   def range
@@ -255,27 +259,27 @@ class Ralf
     end
   end
 
-  def log_dir(bucket)
-    if bucket.logging_info[:targetprefix] =~ /\/$/
-      log_dir = "%s/%s" % [bucket.name, bucket.logging_info[:targetprefix].gsub(/\/$/,'')]
+  def log_dir(bucket_name, targetprefix)
+    if targetprefix =~ /\/$/
+      log_dir = "%s/%s" % [bucket_name, targetprefix.gsub(/\/$/,'')]
     else
-      log_dir = File.dirname("%s/%s" % [bucket.name, bucket.logging_info[:targetprefix]])
+      log_dir = File.dirname("%s/%s" % [bucket_name, targetprefix])
     end
     log_dir
   end
 
   # locations of files for this bucket and date
-  def local_log_dirname(bucket)
-    File.expand_path(File.join(@config[:output_basedir], log_dir(bucket), output_dir_format))
+  def local_log_dirname(bucket_name, targetprefix)
+    File.expand_path(File.join(@config[:output_basedir], log_dir(bucket_name, targetprefix), output_dir_format))
   end
 
-  def local_log_file_basename(bucket, key)
-    "%s%s" % [local_log_file_basename_prefix(bucket), key.name.gsub(bucket.logging_info[:targetprefix], '')]
+  def local_log_file_basename(targetprefix, key_name)
+    "%s%s" % [local_log_file_basename_prefix(targetprefix), key_name.gsub(targetprefix, '')]
   end
 
-  def local_log_file_basename_prefix(bucket)
-    return '' if bucket.logging_info[:targetprefix] =~ /\/$/
-    bucket.logging_info[:targetprefix].split('/').last
+  def local_log_file_basename_prefix(targetprefix)
+    return '' if targetprefix =~ /\/$/
+    targetprefix.split('/').last
   end
 
 private

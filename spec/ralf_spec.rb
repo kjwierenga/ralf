@@ -165,15 +165,13 @@ describe Ralf do
       
       @ralf = Ralf.new(@default_params)
       @bucket1 = mock('bucket1')
-      @bucket1.should_receive(:logging_info).any_number_of_times.and_return({ :enabled => true, :targetprefix => "log/access_log-", :targetbucket => 'bucket1' })
-      @bucket1.should_receive(:name).any_number_of_times.and_return('bucket1')
       @bucket2 = mock('bucket2')
-      @bucket2.should_receive(:logging_info).any_number_of_times.and_return({ :enabled => false, :targetprefix => "log/", :targetbucket => 'bucket2' })
-      @bucket2.should_receive(:name).any_number_of_times.and_return('bucket2')
     end
 
     it "should find buckets with logging enabled" do
       @ralf.s3.should_receive(:buckets).once.and_return([@bucket1, @bucket2])
+      @bucket1.should_receive(:logging_info).and_return({ :enabled => true, :targetprefix => "log/access_log-", :targetbucket => 'bucket1' })
+      @bucket2.should_receive(:logging_info).and_return({ :enabled => false, :targetprefix => "log/", :targetbucket => 'bucket2' })
 
       @ralf.find_buckets_with_logging.should eql([@bucket1])
       @ralf.buckets_with_logging.should      eql([@bucket1])
@@ -183,8 +181,8 @@ describe Ralf do
       File.should_receive(:dirname).with("bucket1/log/access_log-").and_return('bucket1/log')
       File.should_receive(:join) { |*args| args.join('/') }
       
-      @key1.should_receive(:name).and_return(@key1[:name])
-      @ralf.s3_organized_log_file(@bucket1, @key1).should eql('log/2010/02/10/access_log-2010-02-10-00-05-32-ZDRFGTCKUYVJCT')
+      # @key1.should_receive(:name).and_return(@key1[:name])
+      @ralf.s3_organized_log_file('bucket1', 'log/access_log-', 'log/access_log-2010-02-10-00-05-32-ZDRFGTCKUYVJCT').should eql('log/2010/02/10/access_log-2010-02-10-00-05-32-ZDRFGTCKUYVJCT')
     end
 
     describe "logging" do
@@ -202,7 +200,7 @@ describe Ralf do
         dir = '/Test/Users/test_user/S3/bucket1/log/2010/02/10'
         file1 = "#{dir}/access_log-2010-02-10-00-05-32-ZDRFGTCKUYVJCT"
         file2 = "#{dir}/access_log-2010-02-10-00-07-28-EFREUTERGRSGDH"
-        File.should_receive(:makedirs).twice.with(dir).and_return(true)
+        File.should_receive(:makedirs).with(dir).and_return(true)
         File.should_receive(:exists?).once.with(file1).and_return(true)
         File.should_receive(:exists?).once.with(file2).and_return(false)
         File.should_receive(:open).once.with(   file2, "w").and_return(true)
@@ -213,7 +211,10 @@ describe Ralf do
           File.should_receive(:expand_path).any_number_of_times.with(path).and_return(path)
         end
 
-        @ralf.save_logging_to_local_disk(@bucket1, '2010-02-10').should eql([@key1, @key2])
+        @bucket1.should_receive(:name).exactly(4).times.and_return('bucket1')
+        @bucket1.should_receive(:logging_info).and_return({ :enabled => true, :targetprefix => "log/access_log-", :targetbucket => 'bucket1' })
+
+        @ralf.save_logging_to_local_disk(@bucket1, @bucket1.logging_info, '2010-02-10').should eql([@key1, @key2])
       end
 
       it "should save logging for range to disk" do
@@ -250,9 +251,9 @@ describe Ralf do
         File.should_receive(:expand_path).with(dir).and_return(dir)
         File.should_receive(:join).any_number_of_times { |*args| args.join('/') }
 
-        File.should_receive(:makedirs).twice.with(dir)
+        File.should_receive(:makedirs).with(dir)
 
-        @ralf.save_logging_to_local_disk(@bucket3, '2010-02-10').should eql([@key1, @key2])
+        @ralf.save_logging_to_local_disk(@bucket3, @bucket3.logging_info, '2010-02-10').should eql([@key1, @key2])
       end
 
     end
@@ -281,6 +282,9 @@ describe Ralf do
       Process.should_receive(:getrlimit).with(Process::RLIMIT_NOFILE).and_return([10, 10])
       Process.should_receive(:setrlimit).with(Process::RLIMIT_NOFILE, 2 + 100)
 
+      @bucket1.should_receive(:logging_info).and_return({ :enabled => true, :targetprefix => "log/access_log-", :targetbucket => 'bucket1' })
+      @bucket1.should_receive(:name).twice.and_return('bucket1')
+      
       @ralf.merge_to_combined(@bucket1)
 
       out_string.string.should eql('')
@@ -295,39 +299,39 @@ describe Ralf do
         File.should_receive(:expand_path).once.ordered.with(path).and_return(path)
       end
 
-      @ralf.local_log_dirname(@bucket1).should  eql(bucket1_path)
-      @ralf.local_log_dirname(@bucket2).should  eql(bucket2_path)
+      @ralf.local_log_dirname('bucket1', "log/access_log-").should  eql(bucket1_path)
+      @ralf.local_log_dirname('bucket2', "log/").should  eql(bucket2_path)
     end
 
     it "should save to a subdir when a output_dir_format is given" do
       path1 = '/Test/Users/test_user/S3/bucket1/log/2010/02/10'
       File.should_receive(:expand_path).once.with(path1).and_return(path1)
 
-      @ralf.local_log_dirname(@bucket1).should  eql(path1)
+      @ralf.local_log_dirname('bucket1', "log/access_log-").should  eql(path1)
 
       path2 = '/Test/Users/test_user/S3/bucket1/log/2010/w06'
       File.should_receive(:expand_path).once.with(path2).and_return(path2)
 
       @ralf.output_dir_format = ':year/w:week'
-      @ralf.local_log_dirname(@bucket1).should  eql(path2)
+      @ralf.local_log_dirname('bucket1', "log/").should  eql(path2)
     end
 
     it "should get the proper directories" do
       File.should_receive(:expand_path).with('/Test/Users/test_user/S3/bucket1/log/2010/02/10').and_return('/Test/Users/test_user/S3/bucket1/log/2010/02/10')
       File.should_receive(:join).any_number_of_times { |*args| args.join('/') }
       
-      @key1.should_receive(:name).and_return('log/access_log-2010-02-10-00-05-32-ZDRFGTCKUYVJCT')
-      @ralf.local_log_file_basename_prefix(@bucket1).should   eql('access_log-')
-      @ralf.local_log_file_basename(@bucket1, @key1).should   eql('access_log-2010-02-10-00-05-32-ZDRFGTCKUYVJCT')
-      @ralf.local_log_dirname(@bucket1).should                eql('/Test/Users/test_user/S3/bucket1/log/2010/02/10')
+      # @key1.should_receive(:name).and_return('log/access_log-2010-02-10-00-05-32-ZDRFGTCKUYVJCT')
+      @ralf.local_log_file_basename_prefix('log/access_log-').should eql('access_log-')
+      @ralf.local_log_file_basename('log/access_log-', 'log/access_log-2010-02-10-00-05-32-ZDRFGTCKUYVJCT').should eql('access_log-2010-02-10-00-05-32-ZDRFGTCKUYVJCT')
+      @ralf.local_log_dirname('bucket1', 'log/access_log-').should eql('/Test/Users/test_user/S3/bucket1/log/2010/02/10')
 
-      @key1.should_receive(:name).and_return('log/2010-02-10-00-05-32-ZDRFGTCKUYVJCT')
-      @ralf.local_log_file_basename_prefix(@bucket2).should   eql('')
-      @ralf.local_log_file_basename(@bucket2, @key1).should   eql('2010-02-10-00-05-32-ZDRFGTCKUYVJCT')
+      # @key1.should_receive(:name).and_return('log/2010-02-10-00-05-32-ZDRFGTCKUYVJCT')
+      @ralf.local_log_file_basename_prefix('log/').should   eql('')
+      @ralf.local_log_file_basename('log/', 'log/2010-02-10-00-05-32-ZDRFGTCKUYVJCT').should   eql('2010-02-10-00-05-32-ZDRFGTCKUYVJCT')
 
       path = '/Test/Users/test_user/S3/bucket2/log/2010/02/10'
       File.should_receive(:expand_path).once.with(path).and_return(path)
-      @ralf.local_log_dirname(@bucket2).should eql(path)
+      @ralf.local_log_dirname('bucket2', 'log/').should eql(path)
     end
 
   end
