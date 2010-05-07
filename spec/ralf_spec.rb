@@ -340,8 +340,7 @@ describe Ralf do
       config_file_expectations
       
       @ralf    = Ralf.new(@default_params)
-      @bucket1 = {:name => 'bucket1'}
-      @bucket1.should_receive(:name).any_number_of_times.and_return('bucket1')
+      @bucket1 = mock('bucket1')
     end
 
     it "should convert the alf to clf" do
@@ -351,6 +350,7 @@ describe Ralf do
 
       File.should_receive(:join).any_number_of_times { |*args| args.join('/') }
 
+      @bucket1.stub(:name).twice.and_return('bucket1')
       @ralf.convert_alf_to_clf(@bucket1).should eql(true)
     end
 
