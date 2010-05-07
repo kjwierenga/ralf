@@ -151,8 +151,6 @@ describe Ralf do
       ralf = Ralf.new(@default_params.merge(:range => 'this month', :now => 'yesterday'))
       ralf.range.to_s.should  eql('2010-04-01..2010-04-30')
       ralf = nil
-      
-      puts @default_params.inspect
     end
 
   end
