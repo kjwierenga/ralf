@@ -38,7 +38,7 @@ Command line options override the options loaded from the configuration file."
         options[:output_dir_format] = format
       end
 
-      opts.on("-d", "--output-basedir DIR", "Base directory for output files.") do |dir|
+      opts.on("-o", "--output-basedir DIR", "Base directory for output files.") do |dir|
         options[:output_basedir] = dir
       end
 
@@ -76,10 +76,13 @@ Command line options override the options loaded from the configuration file."
       end
 
       opts.separator ""
-      opts.separator "Log options:"
-      opts.on("-e", "--log-file FILE", "Path to log file.") do |file|
-        options[:log_file] = file
+      opts.separator "Debug options:"
+      opts.on("-d", "--[no-]debug [aws]", "Show debug messages.") do |aws|
+        options[:debug] = aws || true
       end
+      # opts.on("-x", "--[no-]aws-debug", "Show S3 debug messages.") do |value|
+      #   options[:aws_debug] = value
+      # end
 
       opts.separator ""
       opts.separator "Common options:"

@@ -34,9 +34,7 @@ class Ralf
   
   RLIMIT_NOFILE_HEADROOM = 100 # number of file descriptors to allocate above number of logfiles
 
-  # attr :date
-  # attr :range
-  attr :config
+  attr_reader :config
   attr_reader :s3, :buckets_with_logging
 
   def initialize(args = {})
@@ -44,27 +42,32 @@ class Ralf
 
     params = args.dup
 
-    read_preferences(params.delete(:config), params)
+    @config = read_preferences(params.delete(:config), params)
     self.range = params.delete(:range)
 
-    if @config[:log_file]
-      log_file = File.open(File.expand_path(@config[:log_file]), File::WRONLY | File::APPEND | File::CREAT)
+    if 'aws' == config[:debug]
+      logger = Logger.new($stdout)
     else
-      log_file = StringIO.new
+      logger = Logger.new(StringIO.new)
     end
+    # if config[:log_file]
+    #   log_file = File.open(File.expand_path(config[:log_file]),
+    #                        File::WRONLY | File::APPEND | File::CREAT)
+    # else
+    #   log_file = StringIO.new
+    # end
     
     RightAws::RightAwsBaseInterface.caching = true # enable caching to speed up
     @s3 = RightAws::S3.new(
-            @config[:aws_access_key_id],
-            @config[:aws_secret_access_key],
-            { :logger => Logger.new(log_file),
-              :protocol => 'http', :port => 80 })
+            config[:aws_access_key_id],
+            config[:aws_secret_access_key],
+            { :logger => logger, :protocol => 'http', :port => 80 })
   end
 
   def self.run(params)
     ralf = Ralf.new(params)
     
-    if ralf.config[:list_buckets]
+    if ralf.config[:list]
       ralf.list_buckets(ralf.config[:buckets])
     else
       ralf.run
@@ -72,13 +75,13 @@ class Ralf
   end
 
   def run
-    puts "Processing: #{range.begin == range.end ? range.begin : range}" if ENV['DEBUG']
+    puts "Processing: #{range.begin == range.end ? range.begin : range}" if config[:debug]
     
-    find_buckets_with_logging(@config[:buckets])
+    find_buckets_with_logging(config[:buckets])
     @buckets_with_logging.each do |b|
       logging_info = bucket.logging_info
       puts "#{bucket.name} logging to #{logging_info[:targetbucket]}/#{logging_info[:targetprefix]}"
-    end if ENV['DEBUG']
+    end if config[:debug]
     @buckets_with_logging.each do |bucket|
       save_logging(bucket)
       merge_to_combined(bucket)
@@ -87,9 +90,10 @@ class Ralf
   end
   
   def list_buckets(names)
+    puts "Listing buckets..." if config[:debug]
     find_buckets(names).each do |bucket|
-      print "#{bucket.name}"
       logging_info = bucket.logging_info
+      print "#{bucket.name}"
       puts logging_info[:enabled] ? " [#{logging_info[:targetbucket]}/#{logging_info[:targetprefix]}]" : " [-]"
     end
   end
@@ -129,7 +133,7 @@ class Ralf
   def save_logging_to_local_disk(bucket, logging_info, date)
 
     if bucket.name != logging_info[:targetbucket]
-      puts "logging for '%s' is on '%s'" % [bucket.name, logging_info[:targetbucket]] if ENV['DEBUG']
+      puts "logging for '%s' is on '%s'" % [bucket.name, logging_info[:targetbucket]] if config[:debug]
       targetbucket = @s3.bucket(logging_info[:targetbucket])
     else
       targetbucket = bucket
@@ -145,14 +149,14 @@ class Ralf
         local_log_file_basename(logging_info[:targetprefix], key.name)))
 
       unless File.exists?(local_log_file)
-        puts "Writing #{local_log_file}" if ENV['DEBUG']
+        puts "Writing #{local_log_file}" if config[:debug]
         File.open(local_log_file, 'w') { |f| f.write(key.data) }
       else
-        puts "File exists #{local_log_file}" if ENV['DEBUG']
+        puts "File exists #{local_log_file}" if config[:debug]
       end
 
-      # if @config[:rename_bucket_keys]
-      #   puts "moving #{key.name} to #{s3_organized_log_file(bucket.name, logging_info[:targetprefix], key)}" if ENV['DEBUG']
+      # if config[:rename_bucket_keys]
+      #   puts "moving #{key.name} to #{s3_organized_log_file(bucket.name, logging_info[:targetprefix], key)}" if config[:debug]
       #   key.move(s3_organized_log_file(bucket.name, logging_info[:targetprefix], key))
       # end
     end
@@ -160,7 +164,7 @@ class Ralf
 
   # merge all files just downloaded for date to 1 combined file
   def merge_to_combined(bucket)
-    puts "Merging..." if ENV['DEBUG']
+    puts "Merging..." if config[:debug]
     
     logging_info = bucket.logging_info
     in_files = []
@@ -170,17 +174,17 @@ class Ralf
 
     update_rlimit_nofile(in_files.size)
     
-    File.open(File.join(@config[:output_basedir], output_alf_file_name(bucket)), 'w') do |out_file|
+    File.open(File.join(config[:output_basedir], output_alf_file_name(bucket)), 'w') do |out_file|
       LogMerge::Merger.merge out_file, *in_files
     end
   end
 
   # Convert Amazon log files to Apache CLF
   def convert_alf_to_clf(bucket)
-    puts "Convert to CLF..." if ENV['DEBUG']
+    puts "Convert to CLF..." if config[:debug]
     
-    out_file = File.open(File.join(@config[:output_basedir], output_clf_file_name(bucket)), 'w')
-    File.open(File.join(@config[:output_basedir], output_alf_file_name(bucket)), 'r') do |in_file|
+    out_file = File.open(File.join(config[:output_basedir], output_clf_file_name(bucket)), 'w')
+    File.open(File.join(config[:output_basedir], output_alf_file_name(bucket)), 'r') do |in_file|
       while (line = in_file.gets)
         out_file.puts(translate_to_clf(line))
       end
@@ -206,11 +210,9 @@ class Ralf
       raise Ralf::InvalidRange, "unused extra argument '#{expr}'" if i > 1
       
       chronic_options = { :context => :past, :guess => false }
-      if @config[:now]
-        chronic_options.merge!(:now => Chronic.parse(@config[:now], :context => :past))
+      if config[:now]
+        chronic_options.merge!(:now => Chronic.parse(config[:now], :context => :past))
       end
-      
-      puts @config[:now].inspect
       
       if span = Chronic.parse(expr, chronic_options)
         if on_same_date?(span)
@@ -218,7 +220,7 @@ class Ralf
         else
           raise Ralf::InvalidRange, "range end '#{expr}' is not a single date" if i > 0
           range << span.begin
-          range << span.end + (@config[:now] ? 0 : -1)
+          range << span.end + (config[:now] ? 0 : -1)
         end
       else
         raise Ralf::InvalidRange, "invalid expression '#{expr}'"
@@ -239,15 +241,15 @@ class Ralf
   def output_dir_format
     # TODO: should this be range.begin, or range.end or should the separator
     # be interpolated for each logfile?
-    if @config[:output_dir_format]
-      Ralf::Interpolation.interpolate(range.end, @config[:output_dir_format])
+    if config[:output_dir_format]
+      Ralf::Interpolation.interpolate(range.end, config[:output_dir_format])
     else
       ''
     end
   end
 
   def output_dir_format=(output_dir_format)
-    @config[:output_dir_format] = output_dir_format
+    config[:output_dir_format] = output_dir_format
   end
 
   def translate_to_clf(line)
@@ -270,7 +272,7 @@ class Ralf
 
   # locations of files for this bucket and date
   def local_log_dirname(bucket_name, targetprefix)
-    File.expand_path(File.join(@config[:output_basedir], log_dir(bucket_name, targetprefix), output_dir_format))
+    File.expand_path(File.join(config[:output_basedir], log_dir(bucket_name, targetprefix), output_dir_format))
   end
 
   def local_log_file_basename(targetprefix, key_name)
@@ -285,11 +287,11 @@ class Ralf
 private
 
   def output_alf_file_name(bucket)
-    "%s%s_%s.alf" % [@config[:output_prefix] || "", bucket.name, range.end]
+    "%s%s_%s.alf" % [config[:output_prefix] || "", bucket.name, range.end]
   end
 
   def output_clf_file_name(bucket)
-    "%s%s_%s.log" % [@config[:output_prefix] || "", bucket.name, range.end]
+    "%s%s_%s.log" % [config[:output_prefix] || "", bucket.name, range.end]
   end
 
   def load_user_or_system_config_file
@@ -306,28 +308,29 @@ private
   end
 
   def read_preferences(config_file, params = {})
-    @config = {}
+    config = {}
     if config_file
-      @config = YAML.load_file(File.expand_path(config_file)) || {}
+      config = YAML.load_file(File.expand_path(config_file)) || {}
     else
-      @config = load_user_or_system_config_file || {}
+      config = load_user_or_system_config_file || {}
     end
     
     # define symbolize_keys! method on the instance to convert key strings to symbols
-    def @config.symbolize_keys!
+    def config.symbolize_keys!
       h = self.dup; self.clear; h.each_pair { |k,v| self[k.to_sym] = v }; self
     end
 
-    @config.symbolize_keys!
-    @config.merge!(params)
+    config.symbolize_keys!
+    config.merge!(params)
     
     raise ConfigIncomplete.new("--aws-access-key-id required") unless
-      (@config[:aws_access_key_id] || ENV['AWS_ACCESS_KEY_ID'])
+      (config[:aws_access_key_id] || ENV['AWS_ACCESS_KEY_ID'])
       
     raise ConfigError.new("--aws-secret-access-key required") unless
-      (@config[:aws_secret_access_key] || ENV['AWS_SECRET_ACCESS_KEY'])
+      (config[:aws_secret_access_key] || ENV['AWS_SECRET_ACCESS_KEY'])
     
-    @config[:output_basedir] = File.expand_path(@config[:output_basedir] || '.')
+    config[:output_basedir] = File.expand_path(config[:output_basedir] || '.')
+    config
   end
   
 private
