@@ -79,7 +79,7 @@ class Ralf
     @buckets_with_logging.each do |bucket|
       save_logging(bucket)
       merge_to_combined(bucket)
-      convert_alt_to_clf(bucket)
+      convert_alf_to_clf(bucket)
     end
   end
   
@@ -93,28 +93,29 @@ class Ralf
       end
     end
   end
-
-  # Finds all buckets (in scope of provided credentials) which have logging enabled
+  
+  # Finds all buckets (in scope of provided credentials)
   def find_buckets(names)
     # find specified buckets
     if names
       names.map do |name|
-        bucket = @s3.bucket(name)
-        $stdout.puts "Bucket '#{name}' not found." if bucket.nil?
-        bucket
-      end
+        returning @s3.bucket(name) do |bucket|
+          puts("Warning: bucket '#{name}' not found.") if bucket.nil?
+        end
+      end.compact # remove nils i.e. buckets not found
     else
       @s3.buckets
     end
   end
 
+  # Find buckets with logging enabled
   def find_buckets_with_logging(names = nil)
     buckets = find_buckets(names)
 
     # remove buckets that don't have logging enabled
     @buckets_with_logging = buckets.map do |bucket|
       bucket.logging_info[:enabled] ? bucket : nil
-    end.compact
+    end.compact # remove nils, i.e. buckets without logging
   end
 
   def save_logging(bucket)
@@ -335,6 +336,11 @@ private
     if new_rlimit_nofile > rlimit_nofile.first
       Process.setrlimit(Process::RLIMIT_NOFILE, new_rlimit_nofile) rescue nil
     end 
+  end
+  
+  def returning(value)
+    yield(value)
+    value
   end
 
 end
