@@ -46,8 +46,8 @@ Command line options override the options loaded from the configuration file."
         options[:output_prefix] = string
       end
       
-      opts.on("-l", "--[no-]list-buckets", "List buckets that have logging enabled.") do |value|
-        options[:list_buckets] = value
+      opts.on("-l", "--[no-]list", "List buckets that have logging enabled.") do |value|
+        options[:list] = value
       end
       
       opts.on("-b", "--buckets x,y,z", Array, "List of buckets for which to process logfiles.") do |buckets|
