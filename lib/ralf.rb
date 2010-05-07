@@ -151,10 +151,10 @@ class Ralf
         puts "File exists #{local_log_file}" if ENV['DEBUG']
       end
 
-      if @config[:rename_bucket_keys]
-        puts "moving #{key.name} to #{s3_organized_log_file(bucket.name, logging_info[:targetprefix], key)}" if ENV['DEBUG']
-        key.move(s3_organized_log_file(bucket.name, logging_info[:targetprefix], key))
-      end
+      # if @config[:rename_bucket_keys]
+      #   puts "moving #{key.name} to #{s3_organized_log_file(bucket.name, logging_info[:targetprefix], key)}" if ENV['DEBUG']
+      #   key.move(s3_organized_log_file(bucket.name, logging_info[:targetprefix], key))
+      # end
     end
   end
 

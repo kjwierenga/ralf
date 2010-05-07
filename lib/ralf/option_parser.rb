@@ -64,9 +64,10 @@ Command line options override the options loaded from the configuration file."
               "AWS Secret Access Key") do |aws_secret_access_key|
         options[:aws_secret_access_key] = aws_secret_access_key
       end
-      opts.on("-m", "--[no-]rename-bucket-keys", "Rename original log files on Amazon using '--output-dir-format' option.") do |value|
-        options[:rename_bucket_keys] = value
-      end
+
+      # opts.on("-m", "--[no-]rename-bucket-keys", "Rename original log files on Amazon using format from '--cache-dir' option.") do |value|
+      #   options[:rename_bucket_keys] = value
+      # end
 
       opts.separator ""
       opts.separator "Config file options:"

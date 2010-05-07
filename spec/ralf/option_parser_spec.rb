@@ -15,7 +15,7 @@ describe Ralf::OptionParser do
       :output_prefix         => [ '-p', '--output-prefix',         's3_combined' ],
       :config_file           => [ '-c', '--config-file',           '/my/etc/config.yaml' ],
       :log_file              => [ '-e', '--log-file',              '/var/log/ralf.log' ],
-      :rename_bucket_keys    => [ '-m', '--rename-bucket-keys',    nil ],
+      # :rename_bucket_keys    => [ '-m', '--rename-bucket-keys',    nil ],
       :buckets               => [ '-b', '--buckets',               [ 'bucket1.mydomain.net', 'bucket2.mydomain.net' ] ],
       :list_buckets          => [ '-l', '--list-buckets',          nil ],
       :now                   => [ '-t', '--now',                   'yesterday' ],
