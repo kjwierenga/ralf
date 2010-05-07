@@ -4,6 +4,34 @@ $LOAD_PATH.unshift(File.join(File.dirname(__FILE__), '..', 'lib'))
 require 'ralf'
 require 'ralf/option_parser'
 
+# Class to suppress writing of a particular string to an IO instance
+class IOSuppress < IO
+
+  @expect_newline = false
+  @suppress = nil
+  
+  def initialize(suppress, *args)
+    @suppress = suppress
+    super(*args)
+  end
+
+  # override write method to suppress string
+  def write(str)
+    case str
+    when "\n"
+      if @expect_newline
+        @expect_newline = false
+        return 1
+      end
+    when @suppress
+      @expect_newline = true
+      return @suppress.size
+    end
+    super(str)
+  end
+end
+$stderr = IOSuppress.new("warning: peer certificate won't be verified in this SSL session", $stderr.fileno, "w")
+
 begin
   if options = Ralf::OptionParser.parse(ARGV)
     Ralf.run(options)
