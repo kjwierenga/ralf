@@ -169,7 +169,7 @@ class Ralf
   end
 
   # Convert Amazon log files to Apache CLF
-  def convert_alt_to_clf(bucket)
+  def convert_alf_to_clf(bucket)
     out_file = File.open(File.join(@config[:output_basedir], output_clf_file_name(bucket)), 'w')
     File.open(File.join(@config[:output_basedir], output_alf_file_name(bucket)), 'r') do |in_file|
       while (line = in_file.gets)

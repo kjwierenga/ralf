@@ -349,7 +349,7 @@ describe Ralf do
 
       File.should_receive(:join).any_number_of_times { |*args| args.join('/') }
 
-      @ralf.convert_alt_to_clf(@bucket1).should eql(true)
+      @ralf.convert_alf_to_clf(@bucket1).should eql(true)
     end
 
     it "should find the proper values in a line" do
