@@ -3,7 +3,7 @@ require 'optparse'
 
 class Ralf::OptionParser
   
-  def self.parse(args, output = STDOUT)
+  def self.parse(args, output = $stdout)
     options = {}
 
     opts = ::OptionParser.new do |opts|

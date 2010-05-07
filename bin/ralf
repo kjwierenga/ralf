@@ -37,5 +37,5 @@ begin
     Ralf.run(options)
   end
 rescue => e
-  STDERR.puts "Error: #{e}"
+  $stderr.puts "Error: #{e}"
 end

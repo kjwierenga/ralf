@@ -69,10 +69,10 @@ class Ralf
   end
 
   def run
-    STDOUT.puts "Processing: #{range.begin == range.end ? range.begin : range}"
+    $stdout.puts "Processing: #{range.begin == range.end ? range.begin : range}"
     
     find_buckets_with_logging(@config[:buckets])
-    STDOUT.puts @buckets_with_logging.collect {|buc| buc.logging_info.inspect } if ENV['DEBUG']
+    $stdout.puts @buckets_with_logging.collect {|buc| buc.logging_info.inspect } if ENV['DEBUG']
     @buckets_with_logging.each do |bucket|
       save_logging(bucket)
       merge_to_combined(bucket)
@@ -82,11 +82,11 @@ class Ralf
   
   def list_buckets(names)
     find_buckets(names).each do |bucket|
-      STDOUT.print "#{bucket.name}"
+      $stdout.print "#{bucket.name}"
       if bucket.logging_info[:enabled]
-        STDOUT.puts " [#{bucket.logging_info[:targetbucket]}/#{bucket.logging_info[:targetprefix]}]"
+        $stdout.puts " [#{bucket.logging_info[:targetbucket]}/#{bucket.logging_info[:targetprefix]}]"
       else
-        STDOUT.puts " [-]"
+        $stdout.puts " [-]"
       end
     end
   end
@@ -97,7 +97,7 @@ class Ralf
     if names
       names.map do |name|
         bucket = @s3.bucket(name)
-        STDOUT.puts "Bucket '#{name}' not found." if bucket.nil?
+        $stdout.puts "Bucket '#{name}' not found." if bucket.nil?
         bucket
       end
     else
