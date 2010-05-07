@@ -23,13 +23,14 @@ Command line options override the options loaded from the configuration file."
       opts.separator ""
       opts.separator "Specific options:"
 
-      opts.on("-r", "--range BEGIN[,END]", Array, "Date or date range to process. Supports Chronic expressions (http://chronic.rubyforge.org)") do |range|
+      opts.on("-r", "--range BEGIN[,END]", Array, "Date or date range to process.") do |range|
         options[:range] = range.compact
       end
 
-      opts.on("-t", "--now TIME", "Date to use as base range off. Supports Chronic expressions (http://chronic.rubyforge.org)") do |now|
+      opts.on("-t", "--now TIME", "Date to use as base range off.") do |now|
         options[:now] = now
       end
+      opts.separator "You can use Chronic expressions for '--range' and '--now'. See http://chronic.rubyforge.org."
 
       opts.separator ""
       opts.separator "Output options:"
@@ -37,19 +38,19 @@ Command line options override the options loaded from the configuration file."
         options[:output_dir_format] = format
       end
 
-      opts.on("-d", "--output-basedir DIR", "Base directory for output files") do |dir|
+      opts.on("-d", "--output-basedir DIR", "Base directory for output files.") do |dir|
         options[:output_basedir] = dir
       end
 
-      opts.on("-p", "--output-prefix STRING", "Prefix string for output files") do |string|
+      opts.on("-p", "--output-prefix STRING", "Prefix string for output files.") do |string|
         options[:output_prefix] = string
       end
       
-      opts.on("-l", "--[no-]list-buckets", "List buckets that have logging enabled") do |value|
+      opts.on("-l", "--[no-]list-buckets", "List buckets that have logging enabled.") do |value|
         options[:list_buckets] = value
       end
       
-      opts.on("-b", "--buckets x,y,z", Array, "List of buckets for which to process logfiles") do |buckets|
+      opts.on("-b", "--buckets x,y,z", Array, "List of buckets for which to process logfiles.") do |buckets|
         options[:buckets] = buckets.compact
       end
       
@@ -63,25 +64,25 @@ Command line options override the options loaded from the configuration file."
               "AWS Secret Access Key") do |aws_secret_access_key|
         options[:aws_secret_access_key] = aws_secret_access_key
       end
-      opts.on("-m", "--[no-]rename-bucket-keys", "Rename original log files on Amazon using '--output-dir-format' option") do |value|
+      opts.on("-m", "--[no-]rename-bucket-keys", "Rename original log files on Amazon using '--output-dir-format' option.") do |value|
         options[:rename_bucket_keys] = value
       end
 
       opts.separator ""
       opts.separator "Config file options:"
-      opts.on("-c", "--config-file FILE", "Path to configuration file (.yaml)") do |file|
+      opts.on("-c", "--config-file FILE", "Path to configuration YAML file.") do |file|
         options[:config_file] = file
       end
 
       opts.separator ""
       opts.separator "Log options:"
-      opts.on("-e", "--log-file FILE", "Path to log file") do |file|
+      opts.on("-e", "--log-file FILE", "Path to log file.") do |file|
         options[:log_file] = file
       end
 
       opts.separator ""
       opts.separator "Common options:"
-      opts.on_tail("-h", "--help", "Show this message") do
+      opts.on_tail("-h", "--help", "Show this message.") do
         output.puts opts
         return nil
       end
