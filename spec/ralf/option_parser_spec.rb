@@ -19,6 +19,7 @@ describe Ralf::OptionParser do
       :buckets               => [ '-b', '--buckets',               [ 'bucket1.mydomain.net', 'bucket2.mydomain.net' ] ],
       :list_buckets          => [ '-l', '--list-buckets',          nil ],
       :now                   => [ '-t', '--now',                   'yesterday' ],
+      # :rename_bucket_keys    => [ '-m', '--rename-bucket-keys',    nil ],
     }
   end
   
