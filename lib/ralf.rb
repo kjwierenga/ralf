@@ -72,10 +72,13 @@ class Ralf
   end
 
   def run
-    $stdout.puts "Processing: #{range.begin == range.end ? range.begin : range}"
+    puts "Processing: #{range.begin == range.end ? range.begin : range}" if ENV['DEBUG']
     
     find_buckets_with_logging(@config[:buckets])
-    $stdout.puts @buckets_with_logging.collect {|buc| buc.logging_info.inspect } if ENV['DEBUG']
+    @buckets_with_logging.each do |b|
+      logging_info = bucket.logging_info
+      puts "#{bucket.name} logging to #{logging_info[:targetbucket]}/#{logging_info[:targetprefix]}"
+    end if ENV['DEBUG']
     @buckets_with_logging.each do |bucket|
       save_logging(bucket)
       merge_to_combined(bucket)
@@ -85,12 +88,9 @@ class Ralf
   
   def list_buckets(names)
     find_buckets(names).each do |bucket|
-      $stdout.print "#{bucket.name}"
-      if bucket.logging_info[:enabled]
-        $stdout.puts " [#{bucket.logging_info[:targetbucket]}/#{bucket.logging_info[:targetprefix]}]"
-      else
-        $stdout.puts " [-]"
-      end
+      print "#{bucket.name}"
+      logging_info = bucket.logging_info
+      puts logging_info[:enabled] ? " [#{logging_info[:targetbucket]}/#{logging_info[:targetprefix]}]" : " [-]"
     end
   end
   
@@ -157,6 +157,8 @@ class Ralf
 
   # merge all files just downloaded for date to 1 combined file
   def merge_to_combined(bucket)
+    puts "Merging..." if ENV['DEBUG']
+    
     in_files = []
     range.each do |date|
       in_files += Dir.glob(File.join(local_log_dirname(bucket), "#{local_log_file_basename_prefix(bucket)}#{date}*"))
@@ -171,6 +173,8 @@ class Ralf
 
   # Convert Amazon log files to Apache CLF
   def convert_alf_to_clf(bucket)
+    puts "Convert to CLF..." if ENV['DEBUG']
+    
     out_file = File.open(File.join(@config[:output_basedir], output_clf_file_name(bucket)), 'w')
     File.open(File.join(@config[:output_basedir], output_alf_file_name(bucket)), 'r') do |in_file|
       while (line = in_file.gets)
