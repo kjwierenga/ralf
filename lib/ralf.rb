@@ -52,10 +52,13 @@ class Ralf
     else
       log_file = StringIO.new
     end
+    
+    RightAws::RightAwsBaseInterface.caching = true # enable caching to speed up
     @s3 = RightAws::S3.new(
             @config[:aws_access_key_id],
             @config[:aws_secret_access_key],
-            { :logger => Logger.new(log_file) })
+            { :logger => Logger.new(log_file),
+              :protocol => 'http', :port => 80 })
   end
 
   def self.run(params)
