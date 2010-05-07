@@ -54,7 +54,6 @@ describe Ralf do
       ralf.config[:aws_access_key_id].should     eql('access_key')
       ralf.config[:aws_secret_access_key].should eql('secret')
       ralf.config[:output_basedir].should              eql('/Test/Users/test_user/S3')
-      # ralf.config.should eql({:aws_access_key_id => 'access_key', :aws_secret_access_key => 'secret'})
     end
 
     it "should look for default configurations" do
@@ -181,7 +180,6 @@ describe Ralf do
       File.should_receive(:dirname).with("bucket1/log/access_log-").and_return('bucket1/log')
       File.should_receive(:join) { |*args| args.join('/') }
       
-      # @key1.should_receive(:name).and_return(@key1[:name])
       @ralf.s3_organized_log_file('bucket1', 'log/access_log-', 'log/access_log-2010-02-10-00-05-32-ZDRFGTCKUYVJCT').should eql('log/2010/02/10/access_log-2010-02-10-00-05-32-ZDRFGTCKUYVJCT')
     end
 
