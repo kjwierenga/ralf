@@ -6,38 +6,37 @@ require 'ralf/option_parser'
 describe Ralf::OptionParser do
 
   before(:all) do
-    @valid_arguments = {
-      :buckets               => [ '-b', '--buckets',               [ 'bucket1.mydomain.net', 'bucket2.mydomain.net' ] ],
+    @valid_arguments = [
+      [ :buckets, '--buckets', [ 'bucket1.mydomain.net', 'bucket2.mydomain.net' ] ],
+      [ :buckets, '-b',        [ 'bucket1.mydomain.net', 'bucket2.mydomain.net' ] ],
       
-      :range                 => [ '-r', '--range',                 ['today'] ],
-      :now                   => [ '-t', '--now',                   'yesterday' ],
+      [ :range, '--range', ['today'] ],
+      [ :range, '-r',      ['today'] ],
+
+      [ :now, '--now', 'yesterday' ],
+      [ :now, '-t',    'yesterday' ],
       
-      :output_file           => [ '-o', '--output-file', '/var/log/s3/:year/:month/:bucket.log' ],
-      :cache_dir             => [ '-x', '--cache-dir',   '/var/run/s3_cache/:bucket/:year/:month/:day' ],
+      [ :output_file, '--output-file', '/var/log/s3/:year/:month/:bucket.log' ],
+      [ :output_file, '-o',            '/var/log/s3/:year/:month/:bucket.log' ],
+
+      [ :cache_dir, '--cache-dir', '/var/run/s3_cache/:bucket/:year/:month/:day' ],
+      [ :cache_dir, '-x',          '/var/run/s3_cache/:bucket/:year/:month/:day' ],
       
-      # :output_dir_format     => [ '-f', '--output-dir-format',     ':year/:month/:day' ],
-      # :output_basedir        => [ '-o', '--output-basedir',        '/var/log/amazon_s3' ],
-      # :output_prefix         => [ '-p', '--output-prefix',         's3_combined' ],
+      [ :list, '--list', true ],
+      [ :list, '-l',     true ],
       
-      :list                  => [ '-l', '--list',                  nil ],
+      [ :debug, '--debug', true ],
+      [ :debug, '-d',      true ],
+      [ :debug, '--debug', 'aws' ],
+      [ :debug, '-d',      'aws' ],
       
-      # :aws_access_key_id     => [ '-a', '--aws-access-key-id',     'the_access_key_id' ],
-      # :aws_secret_access_key => [ '-s', '--aws-secret-access-key', 'the_secret_access_key' ],
-      
-      :debug                 => [ '-d', '--debug',                 nil ],
-      :debug                 => [ '-d', '--debug',                 'aws' ],
-      
-      :config_file           => [ '-c', '--config-file',           '/my/etc/config.yaml' ],
+      [ :config_file, '--config-file', '/my/config/file.conf' ],
+      [ :config_file, '-c',            '/my/config/file.conf' ],
+      [ :config_file, '--config-file', '' ],
+      [ :config_file, '-c',            '' ],
       
       # :rename_bucket_keys    => [ '-m', '--rename-bucket-keys',    nil ],
-    }
-  end
-  
-  def to_argv(arguments, short = true)
-    arguments.map { |k,v|
-      arg = v[2].is_a?(Array) ? v[2].join(',') : v[2]
-      [ (short ? v[0] : v[1]), arg ].compact
-    }.flatten
+    ]
   end
   
   it "should show help message" do
@@ -60,19 +59,16 @@ describe Ralf::OptionParser do
   it "should parse all options short or long" do
     output = StringIO.new
     
-    short_options = to_argv(@valid_arguments, true)
-    long_options  = to_argv(@valid_arguments, false)
+    @valid_arguments.to_a.each do |argument_spec|
+      options = to_argv_array(argument_spec)
+      config = Ralf::OptionParser.parse(options, output)
+    
+      config.should have_key(argument_spec.first)
+      config[argument_spec.first].should eql(argument_spec.last)
 
-    [short_options, long_options].each do |the_options|
-      options = Ralf::OptionParser.parse(the_options, output)
-      
-      @valid_arguments.each do |sym, opts|
-        options.should have_key(sym)
-        options[sym].should eql(opts[2] || true)
-      end
+      output.string.should be_empty
     end
   
-    output.string.should be_empty
   end
 
   it "should allow two dates for range" do
@@ -90,6 +86,12 @@ describe Ralf::OptionParser do
     lambda {
       options = Ralf::OptionParser.parse("--range".split, output)
     }.should raise_error(OptionParser::MissingArgument)
+  end
+  
+  private
+  
+  def to_argv_array(spec)
+    spec[1..-1].delete_if{ |v| true == v }.map{ |v| v.is_a?(Array) ? v.join(',') : v }
   end
   
 end
