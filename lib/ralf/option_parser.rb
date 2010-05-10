@@ -61,16 +61,6 @@ Command line options override the options loaded from the configuration file."
         options[:list] = value
       end
       
-      opts.separator ""
-      opts.separator "Amazon options:"
-      opts.on("-a", "--aws-access-key-id AWS_ACCESS_KEY_ID",
-              "AWS Access Key Id") do |aws_access_key_id|
-        options[:aws_access_key_id] = aws_access_key_id
-      end
-      opts.on("-s", "--aws-secret-access-key AWS_SECRET_ACCESS_KEY",
-              "AWS Secret Access Key") do |aws_secret_access_key|
-        options[:aws_secret_access_key] = aws_secret_access_key
-      end
 
       # opts.on("-m", "--[no-]rename-bucket-keys", "Rename original log files on Amazon using format from '--cache-dir' option.") do |value|
       #   options[:rename_bucket_keys] = value

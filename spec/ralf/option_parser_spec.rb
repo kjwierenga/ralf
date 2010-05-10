@@ -21,8 +21,8 @@ describe Ralf::OptionParser do
       
       :list                  => [ '-l', '--list',                  nil ],
       
-      :aws_access_key_id     => [ '-a', '--aws-access-key-id',     'the_access_key_id' ],
-      :aws_secret_access_key => [ '-s', '--aws-secret-access-key', 'the_secret_access_key' ],
+      # :aws_access_key_id     => [ '-a', '--aws-access-key-id',     'the_access_key_id' ],
+      # :aws_secret_access_key => [ '-s', '--aws-secret-access-key', 'the_secret_access_key' ],
       
       :debug                 => [ '-d', '--debug',                 nil ],
       :debug                 => [ '-d', '--debug',                 'aws' ],
