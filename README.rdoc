@@ -12,41 +12,80 @@ Ralf is an acronym for Retrieve Amazon Log Files. Ralf does the following things
 
   Usage: ./bin/ralf [options]
 
-  Download, merge and convert Amazon S3 log files for a specified date or date range.
+  Download and merge Amazon S3 bucket log files for a specified date range and
+  output a Common Log File. Ralf is an acronym for Retrieve Amazon Log Files.
 
-  ralf reads options from '~/.ralf.yaml' or '/etc/ralf.yaml'. These files must be in YAML format.
+  Ralf downloads bucket log files to local cache directories, merges the Amazon Log
+  Files and converts them to Common Log Format.
 
-  Example:
-    out_path:          /var/log/amazon_s3
-    log_file:          /var/log/ralf.log
-    aws_access_key_id: my_secret_key_id
+  Example: ./bin/ralf --range month --now yesterday --output-file '/var/log/amazon/:year/:month/:bucket.log'
 
-  Command line options override the options loaded from the configuration file.
+  AWS credentials (Access Key Id and Secret Access Key) are required to access
+  S3 buckets. For security reasons these credentials can only be specified in a
+  configuration file (see --config-file) or through the environment using the
+  AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY environment variables.
 
-  Specific options:
-      -r, --range BEGIN[,END]          Date or date range to process. Supports Chronic expressions (http://chronic.rubyforge.org)
+  Log selection options:
+      -l, --[no-]list                  List buckets that have logging enabled. Does not process log files.
+      -b, --buckets x,y,z              Buckets for which to process log files. Defaults to all log-enabled buckets.
+      -r, --range BEGIN[,END]          Date or date range to process. Defaults to 'today'.
+      -t, --now TIME                   Date to use as base for range. Defaults to 'today'.
+
+      You can use Chronic expressions for '--range' and '--now'. See http://chronic.rubyforge.org.
+    
+      Example: --range 'last week'
+        All days of previous week.
+      Example: --range 'this week'
+        Beginning of this week (sunday) upto and including today.
+      Example: --range '2010-01-01','2010-04-30'
+        First four months of this year.
+      Example: --range 'this month' --now yesterday
+        This will select log files from the beginning of yesterday's month upto and including yesterday.
+
+      The --buckets, --range and --now options are optional. If unspecified, (incomplete)
+      logging for today will be processed for all buckets (that have logging enabled).
+      This is equivalent to specifying "--range 'today'" and "--now 'today'".
 
   Output options:
-      -f, --output-dir-format FORMAT   Output directory format, e.g. ':year/:month/:day'
-      -d, --output-basedir DIR         Base directory for output files
-      -p, --output-prefix STRING       Prefix string for output files
+      -o, --output-file FORMAT         Output file, e.g. '/var/log/s3/:year/:month/:bucket.log'. Required.
 
-  Amazon options:
-      -a AWS_ACCESS_KEY_ID             AWS Access Key Id
-          --aws-access-key-id
-      -s AWS_SECRET_ACCESS_KEY         AWS Secret Access Key
-          --aws-secret-access-key
-      -m, --[no-]rename-originals      Rename original log files on Amazon using '--output-dir-format' option
+      The --output-file format uses the last day of the range specified by (--range)
+      to determine the filename. E.g. when the format contains ':year/:month/:day' and
+      the range is 2010-01-15..2010-02-14, then the output file will be '2010/02/14'.
+
+      -x, --cache-dir FORMAT           Directory name(s) in which to cache downloaded log files. Optional.
+
+      The --cache-dir format expands to as many directory names as needed for the 
+      range specified by --range. E.g. "/var/run/s3_cache/:year/:month/:day/:bucket"
+      expands to 31 directories for range 2010-01-01..2010-01-31.
+    
+      Defaults to '~/.ralf_cache/:bucket'.
 
   Config file options:
-      -c, --config FILE                Path to configuration file (.yaml)
+      -c, --config-file FILE           Path to file with configuration settings (in YAML format).
 
-  Log options:
-      -l, --log-file FILE              Path to log file
+      Configuration settings are read from the (-c) specified configuration file
+      or from ~/.ralf or from /etc/ralf (in that order, if the file exists).
+      Command-line options override settings read from a configuration file.
+
+      Configuration files must be in YAML format. Each command-line options has an
+      equivalent setting in a configuration file replacing dash (-) by underscore(_).
+
+      The Amazon Access Key Id and Secret Access Key can only be specified in the 
+
+      Example:
+        output_file:           /var/log/amazon_s3/:year:month/:bucket.log
+        aws_access_key_id:     my_access_key_id
+        aws_secret_access_key: my_secret_access_key
+
+      Command-line options always override the options loaded from the configuration file.
+
+  Debug options:
+      -d, --[no-]debug [aws]           Show debug messages.
 
   Common options:
-      -h, --help                       Show this message
-          --version                    Show version
+      -h, --help                       Show this message.
+      -v, --version                    Show version.
 
 = Library
 
