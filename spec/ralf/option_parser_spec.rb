@@ -12,8 +12,8 @@ describe Ralf::OptionParser do
       :range                 => [ '-r', '--range',                 ['today'] ],
       :now                   => [ '-t', '--now',                   'yesterday' ],
       
-      :output_file_format    => [ '-o', '--output-file', '/var/log/s3/:year/:month/:bucket.log' ],
-      :cache_dir_format      => [ '-x', '--cache-dir',   '/var/run/s3_cache/:bucket/:year/:month/:day' ],
+      :output_file           => [ '-o', '--output-file', '/var/log/s3/:year/:month/:bucket.log' ],
+      :cache_dir             => [ '-x', '--cache-dir',   '/var/run/s3_cache/:bucket/:year/:month/:day' ],
       
       # :output_dir_format     => [ '-f', '--output-dir-format',     ':year/:month/:day' ],
       # :output_basedir        => [ '-o', '--output-basedir',        '/var/log/amazon_s3' ],
