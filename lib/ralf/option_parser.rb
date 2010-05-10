@@ -1,4 +1,3 @@
-require 'rubygems'
 require 'optparse'
 
 class Ralf::OptionParser
@@ -120,8 +119,10 @@ Path to file with configuration settings (in YAML format).
       aws_secret_access_key: my_secret_access_key
 
     Command-line options always override the options loaded from the configuration file.
+    To prevent loading of any configuration from file simply specify -c or
+    --config-file without an argument.
 CONFIG_FILE_HELP
-      opts.on("-c", "--config-file FILE", config_file_help) do |file|
+      opts.on("-c", "--config-file [FILE]", config_file_help) do |file|
         options[:config_file] = file
       end
       
