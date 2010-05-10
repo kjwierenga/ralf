@@ -50,12 +50,6 @@ class Ralf
     else
       logger = Logger.new(StringIO.new)
     end
-    # if config[:log_file]
-    #   log_file = File.open(File.expand_path(config[:log_file]),
-    #                        File::WRONLY | File::APPEND | File::CREAT)
-    # else
-    #   log_file = StringIO.new
-    # end
     
     RightAws::RightAwsBaseInterface.caching = true # enable caching to speed up
     @s3 = RightAws::S3.new(
