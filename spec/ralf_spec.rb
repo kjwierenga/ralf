@@ -30,6 +30,11 @@ describe Ralf do
       :aws_secret_access_key => 'the_secret_access_key',
     }
     
+    @valid_options = {
+      :config_file => '',
+      :output_file => './ralf/:year/:month/:day/:bucket.log',
+    }.merge(@aws_credentials)
+    
     @cli_config_path = 'my_ralf.conf'
     @cli_config = {
       :range       => '2010-02-10',
@@ -63,8 +68,6 @@ describe Ralf do
   describe "Options" do
 
     it "should initialize properly" do
-      config_file_expectations
-      
       ralf = Ralf.new({:output_file => 'here'}.merge(@aws_credentials))
       ralf.class.should eql(Ralf)
     end
@@ -114,8 +117,6 @@ describe Ralf do
     end
 
     it "should set the preferences" do
-      config_file_expectations
-
       ralf = Ralf.new(@cli_config)
       ralf.config.should == Ralf::Config.new(@cli_config)
     end
@@ -144,70 +145,64 @@ describe Ralf do
 
   describe "Range handling" do
     
-    xit "should set range to today if unspecified" do
-      config_file_expectations
+    it "should set range to today if unspecified" do
+      now = Time.now
+      Time.should_receive(:now).and_return(now)
+      ralf = Ralf.new(@valid_options)
+      date = now.strftime("%Y-%m-%d")
 
-      ralf = Ralf.new
-      date = Time.now.strftime("%Y-%m-%d")
-
-      ralf.range.to_s.should eql("#{date}..#{date}")
+      ralf.config.range.to_s.should eql("#{date}..#{date}")
     end
 
-    xit "should set the range when single date given" do
-      config_file_expectations
-      ralf = Ralf.new(@default_params.merge(:range => '2010-02-01'))
-      ralf.range.to_s.should eql('2010-02-01..2010-02-01')
+    it "should set the range when single date given" do
+      ralf = Ralf.new(@valid_options.merge(:range => '2010-02-01'))
+      ralf.config.range.to_s.should eql('2010-02-01..2010-02-01')
     end
 
-    xit "should raise error when invalid date given" do
+    it "should raise error when invalid date given" do
       lambda {
-        ralf = Ralf.new(@default_params.merge(:range => 'someday'))
+        ralf = Ralf.new(@valid_options.merge(:range => 'someday'))
         ralf.range.should be_nil
       }.should raise_error(Ralf::Config::RangeError, "invalid expression 'someday'")
     end
 
-    xit "should accept a range of 2 dates" do
-      config_file_expectations
-      ralf = Ralf.new(@default_params.merge(:range => ['2010-02-10', '2010-02-12']))
-      ralf.range.to_s.should eql('2010-02-10..2010-02-12')
+    it "should accept a range of 2 dates" do
+      ralf = Ralf.new(@valid_options.merge(:range => ['2010-02-10', '2010-02-12']))
+      ralf.config.range.to_s.should eql('2010-02-10..2010-02-12')
+    end
+    
+    it "should raise error for range array with more than 2 items" do
+      lambda {
+        ralf = Ralf.new(@valid_options.merge(:range => ['2010-02-10', '2010-02-12', '2010-02-13']))
+      }.should raise_error(ArgumentError, 'too many range items')
     end
 
-    xit "should treat a range with 1 date as a single date" do
-      config_file_expectations
-      ralf = Ralf.new(@default_params.merge(:range => '2010-02-10'))
-      ralf.range.to_s.should eql('2010-02-10..2010-02-10')
+    it "should treat a range with 1 date as a single date" do
+      ralf = Ralf.new(@valid_options.merge(:range => '2010-02-10'))
+      ralf.config.range.to_s.should eql('2010-02-10..2010-02-10')
     end
 
-    xit "should accept a range array with 1 date" do
-      config_file_expectations
-      ralf = Ralf.new(@default_params.merge(:range => ['2010-02-10']))
-      ralf.range.to_s.should eql('2010-02-10..2010-02-10')
+    it "should accept a range array with 1 date" do
+      ralf = Ralf.new(@valid_options.merge(:range => ['2010-02-10']))
+      ralf.config.range.to_s.should eql('2010-02-10..2010-02-10')
     end
 
-    xit "should accept a range defined by words" do
-      Date.should_receive(:today).any_number_of_times.and_return(Date.strptime('2010-02-17'))
-      Chronic.should_receive(:parse).once.with('2 days ago', :guess => false, :context => :past).and_return(
-        Chronic::Span.new(Time.parse('Mon Feb 15 09:41:00 +0100 2010'),
-                          Time.parse('Tue Feb 15 09:41:00 +0100 2010'))
-      )
-
-      config_file_expectations
-      ralf = Ralf.new(@default_params.merge(:range => '2 days ago'))
-      ralf.range.to_s.should eql('2010-02-15..2010-02-15')
+    it "should accept a range defined by words" do
+      Time.should_receive(:now).exactly(4).times.and_return(Time.parse('Mon Feb 17 09:41:00 +0100 2010'))
+      ralf = Ralf.new(@valid_options.merge(:range => '2 days ago'))
+      ralf.config.range.to_s.should eql('2010-02-15..2010-02-15')
     end
 
-    xit "should accept a month and convert it to a range" do
-      config_file_expectations
-      ralf = Ralf.new(@default_params.merge(:range => 'january'))
-      ralf.range.to_s.should  eql('2010-01-01..2010-01-31')
+    it "should accept a month and convert it to a range" do
+      Time.should_receive(:now).exactly(3).times.and_return(Time.parse('Mon Feb 17 09:41:00 +0100 2010'))
+      ralf = Ralf.new(@valid_options.merge(:range => 'january'))
+      ralf.config.range.to_s.should  eql('2010-01-01..2010-01-31')
     end
     
     xit "should allow 'this month' with base 'yesterday'" do
-      config_file_expectations
       Time.should_receive(:now).exactly(3).times.and_return(Time.parse('Sat May 01 16:31:00 +0100 2010'))
-      ralf = Ralf.new(@default_params.merge(:range => 'this month', :now => 'yesterday'))
-      ralf.range.to_s.should  eql('2010-04-01..2010-04-30')
-      ralf = nil
+      ralf = Ralf.new(@valid_options.merge(:range => 'this month', :now => 'yesterday'))
+      ralf.config.range.to_s.should  eql('2010-04-01..2010-04-30')
     end
 
   end
@@ -215,17 +210,15 @@ describe Ralf do
   describe "Handle Buckets" do
 
     before(:each) do
-      config_file_expectations
-      
-      @ralf = Ralf.new(@default_params)
+      @ralf = Ralf.new(@valid_options)
       @bucket1 = mock('bucket1')
       @bucket2 = mock('bucket2')
     end
 
-    xit "should find buckets with logging enabled" do
+    it "should find buckets with logging enabled" do
       @ralf.s3.should_receive(:buckets).once.and_return([@bucket1, @bucket2])
-      @bucket1.should_receive(:logging_info).and_return({ :enabled => true, :targetprefix => "log/access_log-", :targetbucket => 'bucket1' })
-      @bucket2.should_receive(:logging_info).and_return({ :enabled => false, :targetprefix => "log/", :targetbucket => 'bucket2' })
+      @bucket1.should_receive(:logging_info).and_return({ :enabled => true,  :targetprefix => "log/access_log-", :targetbucket => 'bucket1' })
+      @bucket2.should_receive(:logging_info).and_return({ :enabled => false, :targetprefix => "log/",            :targetbucket => 'bucket2' })
 
       @ralf.find_buckets_with_logging.should eql([@bucket1])
       @ralf.buckets_with_logging.should      eql([@bucket1])
@@ -394,7 +387,7 @@ describe Ralf do
     before(:each) do
       config_file_expectations
       
-      @ralf    = Ralf.new(@default_params)
+      @ralf    = Ralf.new(@valid_options)
       @bucket1 = mock('bucket1')
     end
 
@@ -430,13 +423,4 @@ describe Ralf do
 
   end
   
-  def config_file_expectations
-    # File.stub(:expand_path) { |path| path } #.ordered.with(CONFIG_PATH).and_return(FULL_CONFIG_PATH)
-    # File.stub(:exists?).and_return(true) #.once.with(FULL_CONFIG_PATH).and_return(true)
-    # YAML.stub(:load_file).and_return(CONFIG_FIXTURE_YAML)
-    # 
-    # log_file = '/var/log/ralf.log'
-    # File.stub(:open).once.and_return(StringIO.new)
-  end
-
 end

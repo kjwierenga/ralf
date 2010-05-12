@@ -26,13 +26,6 @@ describe Ralf::Config do
     config = Ralf::Config.new
   end
   
-  it "should raise error when no operation specified (--list or --output-file)" do
-    lambda {
-      config = Ralf::Config.new(@aws_credentials)
-      config.validate!
-    }.should raise_error(Ralf::Config::ConfigurationError, '--list or --output-file required')
-  end
-  
   it "should raise error for missing credentials" do
     lambda {
       config = Ralf::Config.new(:list => true)
@@ -41,24 +34,27 @@ describe Ralf::Config do
   end
   
   it "should handle range assignment" do
+    now = Time.now
+    yesterday = Date.today - 1
+    Time.should_receive(:now).twice.and_return(now)
     config = Ralf::Config.new(@valid_options)
-    config.range = 'today'
-    puts config.range
+    config.range = 'yesterday'
+    config.range.should eql(Range.new(yesterday, yesterday))
   end
   
   it "should interpolate date (:year, :month, :day) variables in output_file" do
     config = Ralf::Config.new(@valid_options.merge(:output_file => ':year/:month/access.log'))
-    config.output_file(@date).should eql('2010/02/access.log')
+    config.output_file(:date => @date).should eql('2010/02/access.log')
   end
 
   it "should interpolate :bucket variable in output_file" do
     config = Ralf::Config.new(@valid_options.merge(:output_file => ':bucket.log'))
-    config.output_file(@date, @bucket).should eql('my.bucket.org.log')
+    config.output_file(:date => @date, :bucket => @bucket).should eql('my.bucket.org.log')
   end
   
   it "should interpolate variables in cache_dir" do
     config = Ralf::Config.new(@valid_options.merge(:cache_dir => ':year/:month/:bucket'))
-    config.cache_dir(@date, @bucket).should eql('2010/02/my.bucket.org')
+    config.cache_dir(:date => @date, :bucket => @bucket).should eql('2010/02/my.bucket.org')
   end
   
 end

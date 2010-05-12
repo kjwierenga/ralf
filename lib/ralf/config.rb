@@ -1,18 +1,22 @@
+require 'ralf/interpolation'
+
 class Ralf::Config
   
   class ConfigurationError < StandardError ; end
   class RangeError         < StandardError ; end
 
   attr_accessor \
-    :aws_access_key_id,
-    :aws_secret_access_key,
     :buckets,
-    :range,
     :now,
-    :output_file,
-    :cache_dir
+    # :range,
+    :aws_access_key_id,
+    :aws_secret_access_key
     
-  attr_writer :debug, :list # booleans have ? readers, e.g. debug?
+  attr_writer \
+    :debug,       # reader is debug?
+    :list,        # reader is list?
+    :output_file, # reader interpolates format
+    :cache_dir    # reader interpolates format
     
   attr_reader :errors
   
@@ -28,24 +32,18 @@ class Ralf::Config
 
   def initialize(options = {})
     @options = options
+    
+    # assign defaults
+    @options[:range]     ||= 'today'
+    @options[:now]       ||= 'today'
+    @options[:cache_dir] ||= File.expand_path("~/.ralf_cache/:bucket")
+    
     @options.each { |attr, val| self.send("#{attr.to_s}=", val) }
   end
   
   def merge!(options)
     @options.merge!(options)
     options.each { |attr, val| self.send("#{attr.to_s}=", val) }
-  end
-  
-  def cache_dir
-    self.cache_dir ||= File.expand_path("~/.ralf_cache/:bucket")
-  end
-  
-  def range
-    self.rang || 'today'
-  end
-  
-  def now
-    self.now || 'today'
   end
   
   def debug?
@@ -56,22 +54,27 @@ class Ralf::Config
     @list || false
   end
   
+  # compare two configurations
   def ==(other)
     @options == other.options
   end
-  
+
+  # return the range
   def range
     raise ArgumentError unless 2 == @range.size
     Range.new(time_to_date(@range.first), time_to_date(@range.last)) # inclusive
   end
   
+  # set a range by a single Chronic expression or an array of 1 or 2 Chronic expressions
   def range=(args, now = nil)
     args ||= []
     args = [args] unless args.is_a?(Array)
+    
+    raise ArgumentError.new("too many range items") if args.size > 2
 
     range = []
     args.each_with_index do |expr, i|
-      raise RangeError, "unused extra argument '#{expr}'" if i > 1
+      raise RangeError if i > 1 # this should have been caught by ArgumentError before the loop
       
       chronic_options = { :context => :past, :guess => false }
       if now
@@ -97,12 +100,12 @@ class Ralf::Config
     @range = range
   end
   
-  def output_file(date, bucket = nil)
-    Ralf::Interpolation.interpolate(@output_file, date, bucket)
+  def output_file(variables)
+    Ralf::Interpolation.interpolate(@output_file, variables)
   end
   
-  def cache_dir(date, bucket)
-    Ralf::Interpolation.interpolate(@cache_dir, date, bucket)
+  def cache_dir(variables)
+    Ralf::Interpolation.interpolate(@cache_dir, variables, [:bucket])
   end
   
   def empty?
@@ -118,10 +121,6 @@ class Ralf::Config
     unless (@aws_secret_access_key || ENV['AWS_SECRET_ACCESS_KEY'])
       @errors << 'aws_secret_access_key missing'
     end
-    
-    unless (@list || @output_file)
-      @errors << '--list or --output-file required'
-    end
   end
   
   def validate!
@@ -129,6 +128,10 @@ class Ralf::Config
     unless @errors.empty?
       raise ConfigurationError.new(@errors.join(', '))
     end
+  end
+  
+  def output_file_missing?
+    !@output_file
   end
   
   private
