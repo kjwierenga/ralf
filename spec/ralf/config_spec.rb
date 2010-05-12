@@ -6,11 +6,18 @@ require 'ralf/config'
 describe Ralf::Config do
   
   before(:all) do
+    ENV['AWS_ACCESS_KEY_ID'], ENV['AWS_SECRET_ACCESS_KEY'] = nil, nil
+    
+    @aws_credentials = {
+      :aws_access_key_id     => 'access_key_id',
+      :aws_secret_access_key => 'secret_key',
+    }
+    
     @valid_options = {
       :output_file           => 'my_log.log',
       :aws_access_key_id     => 'my_access_key_id',
       :aws_secret_access_key => 'my_secret_access_key',
-    }
+    }.merge(@aws_credentials)
     @date = Date.strptime('2010-02-09')
     @bucket = 'my.bucket.org'
   end
@@ -21,14 +28,12 @@ describe Ralf::Config do
   
   it "should raise error when no operation specified (--list or --output-file)" do
     lambda {
-      config = Ralf::Config.new
+      config = Ralf::Config.new(@aws_credentials)
       config.validate!
     }.should raise_error(Ralf::Config::ConfigurationError, '--list or --output-file required')
   end
   
   it "should raise error for missing credentials" do
-    ENV['AWS_ACCESS_KEY_ID']     = nil
-    ENV['AWS_SECRET_ACCESS_KEY'] = nil
     lambda {
       config = Ralf::Config.new(:list => true)
       config.validate!
