@@ -14,6 +14,10 @@ describe Ralf::Bucket do
       :targetbucket => 'targetbucket',
       :targetprefix => 'logs/',
     }
+    
+    # load example buckets (2 disabled)
+    @example_buckets = load_example_bucket_mocks
+    @enabled_buckets_count = @example_buckets.size - 2
   end
   
   it "should initialize properly" do
@@ -27,7 +31,6 @@ describe Ralf::Bucket do
     bucket.should_receive(:logging_info).and_return(logging_info)
     bucket.should_receive(:name).and_return(name)
     
-    # @s3_mock.should_receive(:bucket).with(name).and_return(mock('targetbucket'))
     lambda {
       Ralf::Bucket.new(bucket)
     }.should_not raise_error
@@ -47,6 +50,62 @@ describe Ralf::Bucket do
     
     @s3_mock.should_receive(:bucket).with(targetbucket_name).and_return(mock('s3_targetbucket'))
     Ralf::Bucket.new(bucket)
+  end
+  
+  it "should support iteration over all buckets" do
+    @s3_mock.should_receive(:bucket).any_number_of_times do |name|
+      @example_buckets[name]
+    end
+    @s3_mock.should_receive(:buckets).and_return(@example_buckets.values)
+    yielded_buckets = []
+    Ralf::Bucket.each do |bucket|
+      yielded_buckets << bucket
+    end
+    yielded_buckets.should have(@enabled_buckets_count).items
+    yielded_buckets.each { |bucket| bucket.name.should_not be_nil }
+  end
+
+  it "should support iteration over specific buckets" do
+    @s3_mock.should_receive(:bucket).any_number_of_times do |name|
+      @example_buckets[name]
+    end
+    @example_buckets.each do |name, mock|
+    end
+    yielded_buckets = []
+    Ralf::Bucket.each(@example_buckets.keys) do |bucket|
+      yielded_buckets << bucket
+    end
+    yielded_buckets.should have(@enabled_buckets_count).items
+    yielded_buckets.each do |bucket|
+      bucket.logging_enabled?.should eql(@example_buckets[bucket.name].logging_info[:enabled])
+      bucket.targetbucket.should eql(@example_buckets[bucket.name].logging_info[:targetbucket])
+      bucket.targetprefix.should eql(@example_buckets[bucket.name].logging_info[:targetprefix])
+    end
+  end
+  
+  it "should support iterating over all logs in a bucket" do
+    bucket_mock = @example_buckets['test1']
+    key1, key2 = mock('key1'), mock('key2')
+    keys = [key1, key2]
+    bucket_mock.should_receive(:keys).with(:prefix => 'logs/2010-05-17').and_return(keys)
+
+    expected_logs = []
+    keys.each do |key|
+      log = mock('Log')
+      Ralf::Log.should_receive(:new).with(key, @example_buckets['test1'].logging_info[:targetprefix]).and_return(log)
+      expected_logs << log
+    end
+
+    bucket = Ralf::Bucket.new(bucket_mock)
+    
+    today = Date.today
+    
+    yielded_logs = []
+    bucket.each_log(today) do |log|
+      yielded_logs << log
+    end
+    yielded_logs.should have(keys.size).items
+    yielded_logs.should eql(expected_logs)
   end
   
 end

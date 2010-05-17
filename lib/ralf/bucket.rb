@@ -1,4 +1,5 @@
 require 'ralf/log'
+
 class Ralf
 
   class Bucket
@@ -8,7 +9,7 @@ class Ralf
       
       @bucket = bucket
       @logging_info = @bucket.logging_info
-      if @bucket.name != @logging_info[:targetbucket]
+      if @logging_info[:enabled] and @bucket.name != @logging_info[:targetbucket]
         @targetbucket = @@s3.bucket(@logging_info[:targetbucket])
       else
         @targetbucket = @bucket
@@ -19,7 +20,7 @@ class Ralf
       @@s3 = s3
     end
 
-    def self.each(names, with_logging = true)
+    def self.each(names = nil, with_logging = true)
       # find specified buckets
      if names
        names.map do |name|
