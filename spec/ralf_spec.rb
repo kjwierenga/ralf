@@ -2,9 +2,9 @@ require File.dirname(__FILE__) + '/spec_helper'
 
 require 'ralf'
 
-CONFIG_FIXTURE_PATH = File.expand_path(File.dirname(__FILE__) + '/fixtures/config.yaml')
-# FULL_CONFIG_PATH    = File.expand_path(CONFIG_PATH)
-CONFIG_FIXTURE_YAML = YAML.load_file(CONFIG_FIXTURE_PATH)
+# CONFIG_FIXTURE_PATH = File.expand_path(File.dirname(__FILE__) + '/fixtures/config.yaml')
+# # FULL_CONFIG_PATH    = File.expand_path(CONFIG_PATH)
+# CONFIG_FIXTURE_YAML = YAML.load_file(CONFIG_FIXTURE_PATH)
 
 describe Ralf do
 
@@ -57,15 +57,17 @@ describe Ralf do
     }.merge(@aws_credentials)
     
     # File = mock('File')
+    @s3_mock = mock('s3_mock')
+    Ralf::Bucket.s3 = @s3_mock
+
+    @example_buckets = load_example_bucket_mocks
   end
 
   before(:each) do
-    # TODO find out why next line only behaves as expected in before(:each)
-    # it should really work OK in before(:all)
-    RightAws::S3.should_receive(:new).any_number_of_times.and_return(mock('RightAws::S3'))
+    RightAws::S3.should_receive(:new).any_number_of_times.and_return(@s3_mock)
   end
 
-  describe "Options" do
+  describe "Configuration Options" do
 
     it "should initialize properly" do
       ralf = Ralf.new({:output_file => 'here'}.merge(@aws_credentials))
@@ -147,7 +149,7 @@ describe Ralf do
     
     it "should set range to today if unspecified" do
       now = Time.now
-      Time.should_receive(:now).and_return(now)
+      Time.should_receive(:now).any_number_of_times.and_return(now)
       ralf = Ralf.new(@valid_options)
       date = now.strftime("%Y-%m-%d")
 
@@ -188,47 +190,86 @@ describe Ralf do
     end
 
     it "should accept a range defined by words" do
-      Time.should_receive(:now).exactly(4).times.and_return(Time.parse('Mon Feb 17 09:41:00 +0100 2010'))
+      Time.should_receive(:now).any_number_of_times.and_return(Time.parse('Mon Feb 17 09:41:00 +0100 2010'))
       ralf = Ralf.new(@valid_options.merge(:range => '2 days ago'))
       ralf.config.range.to_s.should eql('2010-02-15..2010-02-15')
     end
 
     it "should accept a month and convert it to a range" do
-      Time.should_receive(:now).exactly(3).times.and_return(Time.parse('Mon Feb 17 09:41:00 +0100 2010'))
+      Time.should_receive(:now).any_number_of_times.and_return(Time.parse('Mon Feb 17 09:41:00 +0100 2010'))
       ralf = Ralf.new(@valid_options.merge(:range => 'january'))
       ralf.config.range.to_s.should  eql('2010-01-01..2010-01-31')
     end
     
     it "should allow 'this month' with base 'yesterday'" do
-      Time.should_receive(:now).exactly(4).times.and_return(Time.parse('Sat May 01 16:31:00 +0100 2010'))
+      Time.should_receive(:now).any_number_of_times.and_return(Time.parse('Sat May 01 16:31:00 +0100 2010'))
       ralf = Ralf.new(@valid_options.merge(:range => 'this month', :now => 'yesterday'))
       ralf.config.range.to_s.should eql('2010-04-01..2010-04-30')
+    end
+    
+    it "should support setting range first then change now (1st day of month)" do
+      Time.should_receive(:now).any_number_of_times.and_return(Time.parse('Sat May 01 16:31:00 +0100 2010'))
+      ralf = Ralf.new(@valid_options.merge(:range => 'this month'))
+      ralf.config.range.to_s.should eql('2010-05-01..2010-05-01')
+      ralf.config.merge!(:now => 'yesterday')
+      ralf.config.range.to_s.should eql('2010-04-01..2010-04-30')
+    end
+
+    it "should support setting range first then change now" do
+      Time.should_receive(:now).any_number_of_times.and_return(Time.parse('Sat May 08 16:31:00 +0100 2010'))
+      ralf = Ralf.new(@valid_options.merge(:range => 'this month'))
+      ralf.config.range.to_s.should eql('2010-05-01..2010-05-07')
+      ralf.config.merge!(:now => '2010-05-06')
+      ralf.config.range.to_s.should eql('2010-05-01..2010-05-06')
     end
 
   end
 
   describe "Handle Buckets" do
 
-    before(:each) do
-      @ralf = Ralf.new(@valid_options)
-      @bucket1 = mock('bucket1')
-      @bucket2 = mock('bucket2')
-    end
-
-    it "should find buckets with logging enabled" do
-      @ralf.s3.should_receive(:buckets).once.and_return([@bucket1, @bucket2])
-      @bucket1.should_receive(:logging_info).and_return({ :enabled => true,  :targetprefix => "log/access_log-", :targetbucket => 'bucket1' })
-      @bucket2.should_receive(:logging_info).and_return({ :enabled => false, :targetprefix => "log/",            :targetbucket => 'bucket2' })
-
-      @ralf.find_buckets_with_logging.should eql([@bucket1])
-      @ralf.buckets_with_logging.should      eql([@bucket1])
-    end
-
-    xit "should return the new organized path" do
-      File.should_receive(:dirname).with("bucket1/log/access_log-").and_return('bucket1/log')
-      File.should_receive(:join) { |*args| args.join('/') }
+    it "should run the algorithm" do
+      # @s3_mock.should_receive(:buckets).and_return(@example_buckets.values)
+      @s3_mock.should_receive(:bucket).any_number_of_times do |name|
+        @example_buckets[name]
+      end
       
-      @ralf.s3_organized_log_file('bucket1', 'log/access_log-', 'log/access_log-2010-02-10-00-05-32-ZDRFGTCKUYVJCT').should eql('log/2010/02/10/access_log-2010-02-10-00-05-32-ZDRFGTCKUYVJCT')
+      File.stub(:makedirs)
+      
+      ralf = Ralf.new(@valid_options.merge(:cache_dir => '/var/log/s3/cache/:bucket',
+                                           :output_file => '/var/log/s3/:bucket.log', :buckets => 'test1'))
+      input1 = StringIO.new
+      input1 << '2cf7e6b06335c0689c6d29163df5bb001c96870cd78609e3845f1ed76a632621 assets.staging.kerkdienstgemist.nl [10/Feb/2010:07:17:02 +0000] 10.32.219.38 3272ee65a908a7677109fedda345db8d9554ba26398b2ca10581de88777e2b61 6E239BC5A4AC757C SOAP.PUT.OBJECT logs/2010-02-10-07-17-02-F6EFD00DAB9A08B6 "POST /soap/ HTTP/1.1" 200 - 797 686 63 31 "-" "Axis/1.3" -'
+      input1 << '2cf7e6b06335c0689c6d29163df5bb001c96870cd78609e3845f1ed76a632621 assets.staging.kerkdienstgemist.nl [10/Feb/2010:07:17:02 +0000] 10.32.219.38 3272ee65a908a7677109fedda345db8d9554ba26398b2ca10581de88777e2b61 6E239BC5A4AC757C SOAP.PUT.OBJECT logs/2010-02-10-07-17-02-F6EFD00DAB9A08B6 "POST /soap/ HTTP/1.1" 200 - 797 686 63 31 "-" "Axis/1.3" -'
+
+      input2 = StringIO.new
+      input2 << '2cf7e6b06335c0689c6d29163df5bb001c96870cd78609e3845f1ed76a632621 assets.staging.kerkdienstgemist.nl [10/Feb/2010:07:17:02 +0000] 10.32.219.38 3272ee65a908a7677109fedda345db8d9554ba26398b2ca10581de88777e2b61 6E239BC5A4AC757C SOAP.PUT.OBJECT logs/2010-02-10-07-17-02-F6EFD00DAB9A08B6 "POST /soap/ HTTP/1.1" 200 - 797 686 63 31 "-" "Axis/1.3" -'
+      input2 << '2cf7e6b06335c0689c6d29163df5bb001c96870cd78609e3845f1ed76a632621 assets.staging.kerkdienstgemist.nl [10/Feb/2010:07:17:02 +0000] 10.32.219.38 3272ee65a908a7677109fedda345db8d9554ba26398b2ca10581de88777e2b61 6E239BC5A4AC757C SOAP.PUT.OBJECT logs/2010-02-10-07-17-02-F6EFD00DAB9A08B6 "POST /soap/ HTTP/1.1" 200 - 797 686 63 31 "-" "Axis/1.3" -'
+      
+      alfio = StringIO.new
+      clfio = StringIO.new
+      
+      File.should_receive(:open).with('/var/log/s3/test1.log.alf', 'w').and_return(alfio)
+      File.should_receive(:open).with('/var/log/s3/test1.log.alf', 'r').and_return(alfio)
+      File.should_receive(:open).with('/var/log/s3/test1.log', 'w').and_return(clfio)
+      File.should_receive(:open).with('/var/log/s3/cache/test1/2010-02-10-00-05-32-ZDRFGTCKUYVJCT', 'w').and_return(input1)
+      File.should_receive(:open).with('/var/log/s3/cache/test1/2010-02-11-00-05-32-ZDRFGTCKUYVJCT', 'w').and_return(input2)
+      # File.should_receive(:open).with('/var/log/s3/cache/test1.log', 'w').and_return(fileio)
+      
+      ralf.run()
+    end
+    
+    it "should raise error when output_file option is missing" do
+      ralf = Ralf.new(@aws_credentials)
+      lambda {
+        ralf.run
+      }.should raise_error(ArgumentError, "--output-file required")
+    end
+    
+    it "should raise error when output_file option requires :bucket variable" do
+      ralf = Ralf.new(@aws_credentials.merge(:output_file => '/tmp/ralf/ralf.log'))
+      lambda {
+        ralf.run
+      }.should raise_error(ArgumentError, "--output-file requires ':bucket' variable")
     end
 
     describe "logging" do

@@ -14,13 +14,14 @@ class Ralf
   RLIMIT_NOFILE_HEADROOM = 100 # number of file descriptors to allocate above number of logfiles
   
   attr_reader :config
-  attr_reader :s3 #, :buckets_with_logging
+  attr_reader :s3
   attr_reader :buckets
   
-  def self.run(params)
-    list = params.delete(:list)
+  # Create instance and run with the specified parameters
+  def self.run(options)
+    list = options.delete(:list)
 
-    ralf = Ralf.new(params)
+    ralf = Ralf.new(options)
     if list
       ralf.list
     else
@@ -28,12 +29,13 @@ class Ralf
     end
   end
   
-  def initialize(args = {})
-    params = args.dup
+  # Create new Ralf instance
+  def initialize(options = {})
+    initial_options = options.dup
 
-    @config = read_cli_or_default_config(params.delete(:config_file), CONFIG_FILE_PATHS)
+    @config = read_cli_or_default_config(initial_options.delete(:config_file), CONFIG_FILE_PATHS)
     
-    config.merge!(params)
+    config.merge!(initial_options)
     config.validate!
     
     RightAws::RightAwsBaseInterface.caching = true # enable caching to speed up
@@ -42,65 +44,49 @@ class Ralf
       :logger => Logger.new('aws' == config.debug? ? $stdout : StringIO.new)
     )
   end
-  
+
+  # For all buckets for all dates in the configured range download the available
+  # log files. After downloading, merge the log files and convert the format
+  # from Amazon Log Format to Apache Common Log Format.
   def run(output_file = nil)
     config.output_file = output_file unless output_file.nil?
     
     raise ArgumentError.new("--output-file required") if config.output_file_missing?
-    raise ArgumentError.new("--output-file requires ':bucket' variable") if config.buckets.size > 1 and !config.output_file_format =~ /:bucket/
+    raise ArgumentError.new("--output-file requires ':bucket' variable") if (config.buckets.nil? || config.buckets.size > 1) and !(config.output_file_format =~ /:bucket/)
+    
+    puts "Processing range #{config.range}" if config.debug?
 
     # iterate over all buckets
     Bucket.each(config.buckets) do |bucket|
+      
+      print "#{bucket.name}: " if config.debug?
 
       # iterate over the full range
+      log_files = []
       config.range.each do |date|
-
-        cache_dir_for_date = config.cache_dir(:date => date, :bucket => bucket.name)
-        File.makedirs(cache_dir_for_date)
-
-        # iterate over the available log files, saving them to disk and 
-        log_files = []
-        bucket.each_log(date) do |log|
-          log_files << log.save_to_dir(cache_dir_for_date)
-        end
-        
-        # merge the log files
-        output_log = config.output_file(:date => config.range.end, :bucket => bucket.name)
-        merged_log =  output_log + ".alf"
-        merge(log_files, merged_log)
-        
-        # convert to common log format
-        convert_to_common_log_format(merged_log, output_log)
+        dir = config.cache_dir(:bucket => bucket.name, :date => date)
+        log_files << Ralf.download_logs(bucket, date, dir)
       end
+      log_files.flatten!
+
+      # determine output file names
+      output_log = config.output_file(:date => config.range.end, :bucket => bucket.name)
+      merged_log =  output_log + ".alf"
+
+      # create directory for output file
+      File.makedirs(File.dirname(merged_log))
+
+      # merge the log files
+      Ralf.merge(merged_log, log_files)
+      
+      # convert to common log format
+      Ralf.convert_to_common_log_format(merged_log, output_log)
+
+      puts "#{log_files.size} files" if config.debug?
     end
   end
   
-  def merge(log_files, output_file)
-    print "Merging #{log_files.size} files..." if config.debug?
-
-    update_rlimit_nofile(log_files.size)
-    File.open(output_file, 'w') do |out_file|
-      LogMerge::Merger.merge out_file, *log_files
-    end
-
-    puts "done." if config.debug?
-  end
-
-  def convert_to_common_log_format(merged_log, output_log)
-    print "Converting to Common Log Format..." if config.debug?
-    
-    out_file = File.open(output_log, 'w')
-    File.open(merged_log, 'r') do |in_file|
-      while (line = in_file.gets)
-        out_file.puts(translate_to_clf(line))
-      end
-    end
-    out_file.close
-    
-    puts "done." if config.debug?
-  end
-  
-  # list buckets
+  # List all buckets with the logging info.
   def list(with_logging = false)
     puts "Listing buckets..." if config.debug?
     
@@ -111,10 +97,43 @@ class Ralf
 
     nil
   end
-  
+
   private
   
-  def translate_to_clf(line)
+  # Download log files for +bucket+ and +date+ to +dir+.
+  def self.download_logs(bucket, date, dir)
+    File.makedirs(dir)
+
+    # iterate over the available log files, saving them to disk and 
+    log_files = []
+    bucket.each_log(date) do |log|
+      log_files << log.save_to_dir(dir)
+    end
+    log_files
+  end
+  
+  # Takes an array of log file names and merges them on ascending timestamp
+  # into +output_file+ name. Assumes the +log_files+ are sorted
+  # on ascending timestamp.
+  def self.merge(output_file, log_files)
+    update_rlimit_nofile(log_files.size)
+    File.open(output_file, 'w') do |out_file|
+      LogMerge::Merger.merge out_file, *log_files
+    end
+  end
+
+  # Convert the input_log file to Apache Common Log Format into output_log
+  def self.convert_to_common_log_format(input_log, output_log)
+    out_file = File.open(output_log, 'w')
+    File.open(input_log, 'r') do |in_file|
+      while (line = in_file.gets)
+        out_file.puts(translate_to_clf(line))
+      end
+    end
+    out_file.close
+  end
+
+  def self.translate_to_clf(line)
     if line =~ AMAZON_LOG_FORMAT
       # host, date, ip, acl, request, status, bytes, agent = $2, $3, $4, $5, $9, $10, $12, $17
       "%s - %s [%s] \"%s\" %d %s \"%s\" \"%s\"" % [$4, $5, $3, $9, $10, $12, $16, $17]
@@ -292,7 +311,7 @@ class Ralf
   #   targetprefix.split('/').last
   # end
 
-private
+  private
 
   def read_cli_or_default_config(cli_config_file, default_config_files)
     config = nil
@@ -308,7 +327,7 @@ private
     config || Ralf::Config.new
   end
   
-  def update_rlimit_nofile(number_of_files)
+  def self.update_rlimit_nofile(number_of_files)
     new_rlimit_nofile = number_of_files + RLIMIT_NOFILE_HEADROOM
 
     # getrlimit returns array with soft and hard limit [soft, hard]
