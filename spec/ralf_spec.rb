@@ -97,8 +97,8 @@ describe Ralf do
     
     it "should have only required option when :config_file is empty string" do
       File.should_not_receive(:exist?)
-      ralf = Ralf.new({ :config_file => '', :list => true }.merge(@aws_credentials))
-      ralf.config.should == Ralf::Config.new({ :list => true }.merge(@aws_credentials))
+      ralf = Ralf.new({ :config_file => ''}.merge(@aws_credentials))
+      ralf.config.should == Ralf::Config.new(@aws_credentials)
     end
     
     it "command-line options should override config file options" do
@@ -129,12 +129,12 @@ describe Ralf do
 
     it "should use AWS credentials provided in ENV" do
       lambda {
-        Ralf.new(:list => true)
+        Ralf.new
       }.should raise_error(Ralf::Config::ConfigurationError, 'aws_access_key_id missing, aws_secret_access_key missing')
 
       ENV['AWS_ACCESS_KEY_ID'], ENV['AWS_SECRET_ACCESS_KEY'] = 'aws_access_key', 'secret'
       lambda {
-        Ralf.new(:list => true)
+        Ralf.new
       }.should_not raise_error(Ralf::Config::ConfigurationError)
       
       # reset

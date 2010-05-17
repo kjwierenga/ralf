@@ -28,7 +28,7 @@ describe Ralf::Config do
   
   it "should raise error for missing credentials" do
     lambda {
-      config = Ralf::Config.new(:list => true)
+      config = Ralf::Config.new
       config.validate!
     }.should raise_error(Ralf::Config::ConfigurationError, 'aws_access_key_id missing, aws_secret_access_key missing')
   end

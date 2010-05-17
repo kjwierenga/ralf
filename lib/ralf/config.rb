@@ -14,7 +14,6 @@ class Ralf::Config
     
   attr_writer \
     :debug,       # reader is debug?
-    :list,        # reader is list?
     :output_file, # reader interpolates format
     :cache_dir    # reader interpolates format
     
@@ -48,10 +47,6 @@ class Ralf::Config
   
   def debug?
     @debug || false
-  end
-  
-  def list?
-    @list || false
   end
   
   # compare two configurations
