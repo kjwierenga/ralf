@@ -57,4 +57,13 @@ describe Ralf::Config do
     config.cache_dir(:date => @date, :bucket => @bucket).should eql('2010/02/my.bucket.org')
   end
   
+  it "should allow 'this month' with base 'yesterday'" do
+    Time.should_receive(:now).exactly(3).times.and_return(Time.parse('Sat May 01 16:31:00 +0100 2010'))
+    config = Ralf::Config.new(:range => 'this month', :now => 'yesterday')
+    config.range.to_s.should eql('2010-04-01..2010-04-30')
+  end
+  
+  it "should merge options" do
+  end
+  
 end

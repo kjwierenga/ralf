@@ -199,10 +199,10 @@ describe Ralf do
       ralf.config.range.to_s.should  eql('2010-01-01..2010-01-31')
     end
     
-    xit "should allow 'this month' with base 'yesterday'" do
-      Time.should_receive(:now).exactly(3).times.and_return(Time.parse('Sat May 01 16:31:00 +0100 2010'))
+    it "should allow 'this month' with base 'yesterday'" do
+      Time.should_receive(:now).exactly(4).times.and_return(Time.parse('Sat May 01 16:31:00 +0100 2010'))
       ralf = Ralf.new(@valid_options.merge(:range => 'this month', :now => 'yesterday'))
-      ralf.config.range.to_s.should  eql('2010-04-01..2010-04-30')
+      ralf.config.range.to_s.should eql('2010-04-01..2010-04-30')
     end
 
   end
@@ -243,7 +243,7 @@ describe Ralf do
       xit "should save logging to disk" do
         @bucket1.should_receive(:keys).any_number_of_times.and_return([@key1, @key2])
 
-        dir = '/Test/Users/test_user/S3/bucket1/log/2010/02/10'
+        dir   = '/Test/Users/test_user/S3/bucket1/log/2010/02/10'
         file1 = "#{dir}/access_log-2010-02-10-00-05-32-ZDRFGTCKUYVJCT"
         file2 = "#{dir}/access_log-2010-02-10-00-07-28-EFREUTERGRSGDH"
         File.should_receive(:makedirs).with(dir).and_return(true)

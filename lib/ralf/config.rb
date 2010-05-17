@@ -30,19 +30,26 @@ class Ralf::Config
   end
 
   def initialize(options = {})
-    @options = options
+    @options = options.dup
     
     # assign defaults
+    @options[:now]       ||= nil
     @options[:range]     ||= 'today'
-    @options[:now]       ||= 'today'
     @options[:cache_dir] ||= File.expand_path("~/.ralf_cache/:bucket")
-    
+
+    self.now = @options[:now] # make sure now is assigned before range
     @options.each { |attr, val| self.send("#{attr.to_s}=", val) }
+
+    # assign_options(@options)
   end
   
   def merge!(options)
     @options.merge!(options)
+
+    # self.now = options[:now] # make sure now is assigned before range
     options.each { |attr, val| self.send("#{attr.to_s}=", val) }
+
+    # assign_options(options)
   end
   
   def debug?
@@ -61,7 +68,7 @@ class Ralf::Config
   end
   
   # set a range by a single Chronic expression or an array of 1 or 2 Chronic expressions
-  def range=(args, now = nil)
+  def range=(args)
     args ||= []
     args = [args] unless args.is_a?(Array)
     
@@ -72,8 +79,8 @@ class Ralf::Config
       raise RangeError if i > 1 # this should have been caught by ArgumentError before the loop
       
       chronic_options = { :context => :past, :guess => false }
-      if now
-        chronic_options.merge!(:now => Chronic.parse(now, :context => :past))
+      if self.now
+        chronic_options.merge!(:now => Chronic.parse(self.now, :context => :past))
       end
       
       if span = Chronic.parse(expr, chronic_options)
@@ -82,7 +89,7 @@ class Ralf::Config
         else
           raise RangeError, "range end '#{expr}' is not a single date" if i > 0
           range << span.begin
-          range << span.end + (now ? 0 : -1)
+          range << span.end + (self.now ? 0 : -1)
         end
       else
         raise RangeError, "invalid expression '#{expr}'"
@@ -133,6 +140,11 @@ class Ralf::Config
   
   def time_to_date(time)
     Date.new(time.year, time.month, time.day)
+  end
+  
+  def assign_options(options)
+    self.now = options[:now] # make sure now is assigned before range
+    options.each { |attr, val| self.send("#{attr.to_s}=", val) }
   end
   
 end
