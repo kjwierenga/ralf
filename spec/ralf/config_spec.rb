@@ -78,7 +78,7 @@ describe Ralf::Config do
     config.range.to_s.should eql('2010-04-01..2010-04-30')
   end
   
-  it "should support setting range first then change now" do
+  it "should support setting range first then change now (1st day of month)" do
     Time.should_receive(:now).any_number_of_times.and_return(Time.parse('Sat May 01 16:31:00 +0100 2010'))
     config = Ralf::Config.new
     config.merge!(:range => 'this month')
