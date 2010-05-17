@@ -47,7 +47,8 @@ class Ralf
     config.output_file = output_file unless output_file.nil?
     
     raise ArgumentError.new("--output-file required") if config.output_file_missing?
-    
+    raise ArgumentError.new("--output-file requires ':bucket' variable") if config.buckets.size > 1 and !config.output_file_format =~ /:bucket/
+
     # iterate over all buckets
     Bucket.each(config.buckets) do |bucket|
 
