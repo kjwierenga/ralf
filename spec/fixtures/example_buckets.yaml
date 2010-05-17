@@ -1,0 +1,48 @@
+--- 
+-
+  :name: 'test1' 
+  :logging_info: 
+    :enabled: true
+    :targetbucket: test1
+    :targetprefix: logs/
+  :keys: 
+  -
+    :name: 'logs/2010-02-10-00-05-32-ZDRFGTCKUYVJCT'
+  -
+    :name: 'logs/2010-02-11-00-05-32-ZDRFGTCKUYVJCT'
+-
+  :name: 'test2' 
+  :logging_info: 
+    :enabled: true
+    :targetbucket: target_test2
+    :targetprefix: logs/access_log-
+  :keys: 
+  -
+    :name: 'logs/access_log-2010-02-12-00-05-32-ZDRFGTCKUYVJCT'
+  -
+    :name: 'logs/access_log-2010-02-13-00-05-32-ZDRFGTCKUYVJCT'
+-
+  :name: 'test3' 
+  :logging_info: 
+    :enabled: false
+    :targetbucket: ''
+    :targetprefix: ''
+  :keys: []
+-
+  :name: 'test4' 
+  :logging_info: 
+    :enabled: true
+    :targetbucket: test4
+    :targetprefix: logs/
+  :keys:
+  - 
+    :name: 'logs/2010-02-14-00-05-32-ZDRFGTCKUYVJCT'
+  -
+    :name: 'logs/2010-02-15-00-05-32-ZDRFGTCKUYVJCT'
+-
+  :name: 'target_test2' 
+  :logging_info: 
+    :enabled: false
+    :targetbucket: ''
+    :targetprefix: ''
+  :keys: []
