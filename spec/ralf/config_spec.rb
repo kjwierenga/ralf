@@ -36,7 +36,7 @@ describe Ralf::Config do
   it "should handle range assignment" do
     now = Time.now
     yesterday = Date.today - 1
-    Time.should_receive(:now).twice.and_return(now)
+    Time.should_receive(:now).any_number_of_times.and_return(now)
     config = Ralf::Config.new(@valid_options)
     config.range = 'yesterday'
     config.range.should eql(Range.new(yesterday, yesterday))
@@ -58,12 +58,42 @@ describe Ralf::Config do
   end
   
   it "should allow 'this month' with base 'yesterday'" do
-    Time.should_receive(:now).exactly(3).times.and_return(Time.parse('Sat May 01 16:31:00 +0100 2010'))
+    Time.should_receive(:now).any_number_of_times.and_return(Time.parse('Sat May 01 16:31:00 +0100 2010'))
     config = Ralf::Config.new(:range => 'this month', :now => 'yesterday')
     config.range.to_s.should eql('2010-04-01..2010-04-30')
   end
   
   it "should merge options" do
+    Time.should_receive(:now).any_number_of_times.and_return(Time.parse('Sat May 01 16:31:00 +0100 2010'))
+    config = Ralf::Config.new
+    config.merge!(:range => 'this month', :now => 'yesterday')
+    config.range.to_s.should eql('2010-04-01..2010-04-30')
   end
   
+  it "should support setting now after range and recompute range" do
+    Time.should_receive(:now).any_number_of_times.and_return(Time.parse('Sat May 01 16:31:00 +0100 2010'))
+    config = Ralf::Config.new
+    config.merge!(:range => 'this month')
+    config.merge!(:now => 'yesterday')
+    config.range.to_s.should eql('2010-04-01..2010-04-30')
+  end
+  
+  it "should support setting range first then change now" do
+    Time.should_receive(:now).any_number_of_times.and_return(Time.parse('Sat May 01 16:31:00 +0100 2010'))
+    config = Ralf::Config.new
+    config.merge!(:range => 'this month')
+    config.range.to_s.should eql('2010-05-01..2010-05-01')
+    config.merge!(:now => 'yesterday')
+    config.range.to_s.should eql('2010-04-01..2010-04-30')
+  end
+  
+  it "should support setting range first then change now" do
+    Time.should_receive(:now).any_number_of_times.and_return(Time.parse('Sat May 08 16:31:00 +0100 2010'))
+    config = Ralf::Config.new
+    config.merge!(:range => 'this month')
+    config.range.to_s.should eql('2010-05-01..2010-05-07')
+    config.merge!(:now => '2010-05-06')
+    config.range.to_s.should eql('2010-05-01..2010-05-06')
+  end
+
 end

@@ -37,19 +37,13 @@ class Ralf::Config
     @options[:range]     ||= 'today'
     @options[:cache_dir] ||= File.expand_path("~/.ralf_cache/:bucket")
 
-    self.now = @options[:now] # make sure now is assigned before range
-    @options.each { |attr, val| self.send("#{attr.to_s}=", val) }
-
-    # assign_options(@options)
+    assign_options(@options)
   end
   
   def merge!(options)
     @options.merge!(options)
 
-    # self.now = options[:now] # make sure now is assigned before range
-    options.each { |attr, val| self.send("#{attr.to_s}=", val) }
-
-    # assign_options(options)
+    assign_options(@options)
   end
   
   def debug?
@@ -98,12 +92,16 @@ class Ralf::Config
     
     range = [ Date.today ] if range.empty? # empty range means today
     range = range*2 if 1 == range.size     # single day has begin == end
-    
+
     @range = range
   end
   
   def output_file(variables)
     Ralf::Interpolation.interpolate(@output_file, variables)
+  end
+  
+  def output_file_format
+    @output_file
   end
   
   def cache_dir(variables)
@@ -142,8 +140,12 @@ class Ralf::Config
     Date.new(time.year, time.month, time.day)
   end
   
-  def assign_options(options)
-    self.now = options[:now] # make sure now is assigned before range
+  def assign_options(new_options)
+    options = new_options.dup
+
+    # always re-assign range in case now has changed
+    self.now   = options.delete(:now)   if options.has_key?(:now)
+    self.range = options.delete(:range) if options.has_key?(:range)
     options.each { |attr, val| self.send("#{attr.to_s}=", val) }
   end
   
