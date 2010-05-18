@@ -8,14 +8,19 @@ require 'chronic'
 
 class Ralf
 
+  private
+  RLIMIT_NOFILE_HEADROOM = 100 # number of file descriptors to allocate above number of logfiles
+
+  public
+
   CONFIG_FILE_PATHS = [ '~/.ralf.conf', '/etc/ralf.conf' ]
   AMAZON_LOG_FORMAT = Regexp.new('([^ ]*) ([^ ]*) \[([^\]]*)\] ([^ ]*) ([^ ]*) ([^ ]*) ([^ ]*) ([^ ]*) "([^"]*)" ([^ ]*) ([^ ]*) ([^ ]*) ([^ ]*) ([^ ]*) ([^ ]*) "([^"]*)" "([^"]*)"')
   
-  RLIMIT_NOFILE_HEADROOM = 100 # number of file descriptors to allocate above number of logfiles
-  
+  # The current configuration.
   attr_reader :config
+  
+  # Instance of RightAws::S3 used by Ralf to talk to Amazon S3.
   attr_reader :s3
-  attr_reader :buckets
   
   # Create instance and run with the specified parameters
   def self.run(options)
