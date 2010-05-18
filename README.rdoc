@@ -1,10 +1,10 @@
 = Synopsis
 
-Download, merge and convert Amazon S3 log files for a specified date or date range.
+Download, merge and convert Amazon S3 bucket log files for a specified date or date range.
 
-* Download log files produced by Amazon S3 from Amazon S3 buckets
-* Merge those log files together into a single logfile (sorting on ascending timestamp)
-* Convert the Amazon Server Access Log Format to Apache Common Log Format
+* Download S3 bucket log files produced by Amazon S3. Log files are downloaded once and cached locally.
+* Merge those log files together into a single logfile per bucket (sorting on ascending timestamp)
+* Convert the log file from Amazon Server Access Log Format to Apache Common Log Format
 
 Ralf is an acronym for Retrieve Amazon Log Files. Ralf does the following things:
 
@@ -62,7 +62,7 @@ Ralf is an acronym for Retrieve Amazon Log Files. Ralf does the following things
       Defaults to '~/.ralf_cache/:bucket'.
 
   Config file options:
-      -c, --config-file FILE           Path to file with configuration settings (in YAML format).
+      -c, --config-file [FILE]         Path to file with configuration settings (in YAML format).
 
       Configuration settings are read from the (-c) specified configuration file
       or from ~/.ralf or from /etc/ralf (in that order, if the file exists).
@@ -79,6 +79,8 @@ Ralf is an acronym for Retrieve Amazon Log Files. Ralf does the following things
         aws_secret_access_key: my_secret_access_key
 
       Command-line options always override the options loaded from the configuration file.
+      To prevent loading of any configuration from file simply specify -c or
+      --config-file without an argument.
 
   Debug options:
       -d, --[no-]debug [aws]           Show debug messages.
@@ -89,23 +91,20 @@ Ralf is an acronym for Retrieve Amazon Log Files. Ralf does the following things
 
 = Library
 
-You can also use Ralf from within your own ruby code.
+You can also use Ralf from within your own ruby code. Each command-line option
+has a corresponding option in the options has passed to Ralf.new and Ralf.run.
+Replace a dash (-) by an underscore (_) in the names:
+
+  options = { :output_file => '/var/log/s3/:bucket.log' }
 
   require 'rubygems'
   require 'ralf'
-  r = Ralf.new(
-    :config => '/my/config.yaml',
-    :output_dir_format => ':year/:month/:day',
-    :rename_bucket_keys => true,
-    :range => 'yesterday'
-  )
+  r = Ralf.new({ :config_file => '/Users/me/ralf.yaml' }.merge(options))
   r.run
 
 Or run it in one go:
-
-  require 'rubygems'
-  require 'ralf'
-  Ralf.run(:config => '/my/config.yaml', :range => '2010-02-01', :output_dir_format => ':year/:month/:day')
+  
+  Ralf.run({ :config_file => '/Users/me/ralf.yaml' }.merge(options))
 
 = Requirements
 
@@ -113,41 +112,14 @@ Or run it in one go:
 * Enable logging on S3
   You can use Cyberduck[http://cyberduck.ch/] for example.
 
-= Dependencies
+= Gem dependencies
+
+Ralf depends on the following gems which will automatically installed when you
+install the ralf gem.
 
 * chronic
 * right_aws
 * logmerge
-
-== Parameters:
-
-    config:   a YAML config file, if none given it tries to open /etc/ralf.yaml or ~/.ralf.yaml
-    range:    a specific range as a string <start> (which creates a range to now) or array: [<start>] _or_ [<start>,<stop>]
-              (examples: 'today'; 'yesterday'; 'january'; ['2 days ago', 'yesterday']; )
-
-    aws_access_key_id:      (required in config)
-    aws_secret_access_key:  (required in config)
-    out_path:               (required in config)
-    output_prefix:             (optional, defaults to 's3_combined') Prefix the output file
-    output_dir_format:          (optional, defaults to '') specify directory separators (e.g. ':year/:month/:day')
-    rename_bucket_keys:     (boolean, optional) organize asset on S3 in the same structure as :output_dir_format 
-                            (WARNING: there is an extra performance and cost penalty)
-    log_file:               (optional, defaults to '/var/log/ralf.log') Logging of ralf actions.
-
-You can ommit a configuration file when you supply the required parameters __:aws\_access\_key\_id___, __:aws\_secret\_access\_key__ and __:out\_path__  
-They take precedence over the config file
-
-== Caveats
-
-* There is no logrotation as we know it like on regular unix machines
-
-More info: {S3 Server Access Logging}[http://docs.amazonwebservices.com/AmazonS3/latest/ServerLogs.html]
-
-== TODO
-
-* Grouping/combinig on week/month
-* Give a date range c.q. a month
-* Option to archive/compress original logs
 
 = Authors
 Authors: {Leon Berenschot}[http://github.com/LeipeLeon] and {K.J. Wierenga}[http://github.com/kjwierenga]
