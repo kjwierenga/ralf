@@ -98,10 +98,8 @@ describe Ralf::Bucket do
 
     bucket = Ralf::Bucket.new(bucket_mock)
     
-    today = Date.today
-    
     yielded_logs = []
-    bucket.each_log(today) do |log|
+    bucket.each_log(Date.new(2010,05,17)) do |log|
       yielded_logs << log
     end
     yielded_logs.should have(keys.size).items
