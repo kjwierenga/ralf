@@ -227,33 +227,43 @@ describe Ralf do
 
   describe "Handle Buckets" do
 
-    it "should run the algorithm" do
-      # @s3_mock.should_receive(:buckets).and_return(@example_buckets.values)
+    it "should download, merge and convert logfiles" do
       @s3_mock.should_receive(:bucket).any_number_of_times do |name|
         @example_buckets[name]
       end
       
       File.stub(:makedirs)
-      
-      ralf = Ralf.new(@valid_options.merge(:cache_dir => '/var/log/s3/cache/:bucket',
-                                           :output_file => '/var/log/s3/:bucket.log', :buckets => 'test1'))
-      input1 = StringIO.new
-      input1 << '2cf7e6b06335c0689c6d29163df5bb001c96870cd78609e3845f1ed76a632621 assets.staging.kerkdienstgemist.nl [10/Feb/2010:07:17:02 +0000] 10.32.219.38 3272ee65a908a7677109fedda345db8d9554ba26398b2ca10581de88777e2b61 6E239BC5A4AC757C SOAP.PUT.OBJECT logs/2010-02-10-07-17-02-F6EFD00DAB9A08B6 "POST /soap/ HTTP/1.1" 200 - 797 686 63 31 "-" "Axis/1.3" -'
-      input1 << '2cf7e6b06335c0689c6d29163df5bb001c96870cd78609e3845f1ed76a632621 assets.staging.kerkdienstgemist.nl [10/Feb/2010:07:17:02 +0000] 10.32.219.38 3272ee65a908a7677109fedda345db8d9554ba26398b2ca10581de88777e2b61 6E239BC5A4AC757C SOAP.PUT.OBJECT logs/2010-02-10-07-17-02-F6EFD00DAB9A08B6 "POST /soap/ HTTP/1.1" 200 - 797 686 63 31 "-" "Axis/1.3" -'
-
-      input2 = StringIO.new
-      input2 << '2cf7e6b06335c0689c6d29163df5bb001c96870cd78609e3845f1ed76a632621 assets.staging.kerkdienstgemist.nl [10/Feb/2010:07:17:02 +0000] 10.32.219.38 3272ee65a908a7677109fedda345db8d9554ba26398b2ca10581de88777e2b61 6E239BC5A4AC757C SOAP.PUT.OBJECT logs/2010-02-10-07-17-02-F6EFD00DAB9A08B6 "POST /soap/ HTTP/1.1" 200 - 797 686 63 31 "-" "Axis/1.3" -'
-      input2 << '2cf7e6b06335c0689c6d29163df5bb001c96870cd78609e3845f1ed76a632621 assets.staging.kerkdienstgemist.nl [10/Feb/2010:07:17:02 +0000] 10.32.219.38 3272ee65a908a7677109fedda345db8d9554ba26398b2ca10581de88777e2b61 6E239BC5A4AC757C SOAP.PUT.OBJECT logs/2010-02-10-07-17-02-F6EFD00DAB9A08B6 "POST /soap/ HTTP/1.1" 200 - 797 686 63 31 "-" "Axis/1.3" -'
+      ralf = Ralf.new(@valid_options.merge(:cache_dir   => '/var/log/s3/cache/:bucket',
+                                           :output_file => '/var/log/s3/:bucket.log',
+                                           :buckets     => 'test1',
+                                           :range       => ['2010-02-01', '2010-02-12']))
       
       alfio = StringIO.new
-      clfio = StringIO.new
+      File.should_receive(:open).with('/var/log/s3/test1.log.alf', 'w').and_yield(alfio)
       
-      File.should_receive(:open).with('/var/log/s3/test1.log.alf', 'w').and_return(alfio)
-      File.should_receive(:open).with('/var/log/s3/test1.log.alf', 'r').and_return(alfio)
-      File.should_receive(:open).with('/var/log/s3/test1.log', 'w').and_return(clfio)
-      File.should_receive(:open).with('/var/log/s3/cache/test1/2010-02-10-00-05-32-ZDRFGTCKUYVJCT', 'w').and_return(input1)
-      File.should_receive(:open).with('/var/log/s3/cache/test1/2010-02-11-00-05-32-ZDRFGTCKUYVJCT', 'w').and_return(input2)
-      # File.should_receive(:open).with('/var/log/s3/cache/test1.log', 'w').and_return(fileio)
+      Ralf.should_receive(:download_logs).any_number_of_times do |bucket, date, dir|
+        expected_bucket = Ralf::Bucket.new(@example_buckets['test1'])
+        [ :name, :logging_enabled?, :targetbucket, :targetprefix ].each do |attr|
+          bucket.send(attr).should eql(expected_bucket.send(attr))
+        end
+        ralf.config.range.should include(date)
+        dir.should eql("/var/log/s3/cache/test1")
+        
+        log_files = []
+        case date
+        when Date.new(2010,02,10)
+          log_files << '/var/log/s3/cache/test1/2010-02-10-00-05-32-ZDRFGTCKUYVJCT'
+        when Date.new(2010,02,11)
+          log_files << '/var/log/s3/cache/test1/2010-02-11-00-05-32-ZDRFGTCKUYVJCT'
+        end
+        log_files
+      end
+
+      Ralf.should_receive(:convert_to_common_log_format).with(
+        "/var/log/s3/test1.log.alf", "/var/log/s3/test1.log")
+      
+      LogMerge::Merger.should_receive(:merge).with(alfio,
+        *@example_buckets['test1'].keys.map{|k| "/var/log/s3/cache/test1/#{k.name.gsub('logs/', '')}"})
       
       ralf.run()
     end
@@ -272,194 +282,38 @@ describe Ralf do
       }.should raise_error(ArgumentError, "--output-file requires ':bucket' variable")
     end
 
-    describe "logging" do
-
-      before(:each) do
-        @key1.should_receive(:name).any_number_of_times.and_return(@key1[:name])
-        @key2.should_receive(:name).any_number_of_times.and_return(@key2[:name])
-        @key1.should_receive(:data).any_number_of_times.and_return(@key1[:data])
-        @key2.should_receive(:data).any_number_of_times.and_return(@key2[:data])
-      end
-
-      xit "should save logging to disk" do
-        @bucket1.should_receive(:keys).any_number_of_times.and_return([@key1, @key2])
-
-        dir   = '/Test/Users/test_user/S3/bucket1/log/2010/02/10'
-        file1 = "#{dir}/access_log-2010-02-10-00-05-32-ZDRFGTCKUYVJCT"
-        file2 = "#{dir}/access_log-2010-02-10-00-07-28-EFREUTERGRSGDH"
-        File.should_receive(:makedirs).with(dir).and_return(true)
-        File.should_receive(:exists?).once.with(file1).and_return(true)
-        File.should_receive(:exists?).once.with(file2).and_return(false)
-        File.should_receive(:open).once.with(   file2, "w").and_return(true)
-
-        File.should_receive(:dirname).any_number_of_times.with("bucket1/log/access_log-").and_return('bucket1/log')
-
-        [ dir, file1, file2 ].each do |path|
-          File.should_receive(:expand_path).any_number_of_times.with(path).and_return(path)
-        end
-
-        @bucket1.should_receive(:name).exactly(4).times.and_return('bucket1')
-        @bucket1.should_receive(:logging_info).and_return({ :enabled => true, :targetprefix => "log/access_log-", :targetbucket => 'bucket1' })
-
-        @ralf.save_logging_to_local_disk(@bucket1, @bucket1.logging_info, '2010-02-10').should eql([@key1, @key2])
-      end
-
-      xit "should save logging for range to disk" do
-        pending "TODO: fix this spec or the implementation" do
-          @bucket1.should_receive(:keys).any_number_of_times.and_return([@key1, @key2], [@key3], [])
-          @key3.should_receive(:name).any_number_of_times.and_return(@key3[:name])
-          @key3.should_receive(:data).any_number_of_times.and_return(@key3[:data])
-
-          @ralf.range = ['2010-02-10', '2010-02-12']
-
-          dir1 = '/Test/Users/test_user/S3/bucket1/log/2010/02/10'
-          dir2 = '/Test/Users/test_user/S3/bucket1/log/2010/02/11'
-          File.should_receive(:exists?).once.with("#{dir1}/access_log-2010-02-10-00-05-32-ZDRFGTCKUYVJCT").and_return(false)
-          File.should_receive(:exists?).once.with("#{dir1}/access_log-2010-02-10-00-07-28-EFREUTERGRSGDH").and_return(true)
-          File.should_receive(:exists?).once.with("#{dir2}/access_log-2010-02-11-00-09-32-SDHTFTFHDDDDDH").and_return(false)
-          File.should_receive(:open).once.with(   "#{dir1}/access_log-2010-02-10-00-05-32-ZDRFGTCKUYVJCT", "w").and_return(StringIO.new)
-          File.should_receive(:open).once.with(   "#{dir2}/access_log-2010-02-11-00-09-32-SDHTFTFHDDDDDH", "w").and_return(StringIO.new)
-        
-          File.should_receive(:makedirs).twice.with(dir1)
-          File.should_receive(:makedirs).once.with(dir2)
-
-          @ralf.save_logging(@bucket1).class.should  eql(Range)
-        end
-      end
-
-      xit "should save logging if a different targetbucket is given" do
-        @ralf.s3.should_receive(:bucket).and_return(@bucket1)
-        @bucket3 = {:name => 'bucket3'}
-        @bucket3.should_receive(:logging_info).any_number_of_times.and_return({ :enabled => false, :targetprefix => "log/", :targetbucket => 'bucket1' })
-        @bucket3.should_receive(:name).any_number_of_times.and_return(@bucket3[:name])
-        @bucket1.should_receive(:keys).any_number_of_times.and_return([@key1, @key2])
-
-        dir = '/Test/Users/test_user/S3/bucket3/log/2010/02/10'
-        File.should_receive(:expand_path).with(dir).and_return(dir)
-        File.should_receive(:join).any_number_of_times { |*args| args.join('/') }
-
-        File.should_receive(:makedirs).with(dir)
-
-        @ralf.save_logging_to_local_disk(@bucket3, @bucket3.logging_info, '2010-02-10').should eql([@key1, @key2])
-      end
-
-    end
-
-    xit "should merge all logs" do
-      out_string = StringIO.new
-
-      Dir.should_receive(:glob).with('/Test/Users/test_user/S3/bucket1/log/2010/02/10/access_log-2010-02-10*').and_return(
-          ['/Test/Users/test_user/S3/bucket1/log/2010/02/10/access_log-2010-02-10-00-05-32-ZDRFGTCKUYVJCT',
-           '/Test/Users/test_user/S3/bucket1/log/2010/02/10/access_log-2010-02-10-00-07-28-EFREUTERGRSGDH'])
-
-      File.should_receive(:open).with('/Test/Users/test_user/S3/s3_combined_bucket1_2010-02-10.alf', "w").and_yield(out_string)
-
-      LogMerge::Merger.should_receive(:merge).with(
-        out_string, 
-        '/Test/Users/test_user/S3/bucket1/log/2010/02/10/access_log-2010-02-10-00-05-32-ZDRFGTCKUYVJCT',
-        '/Test/Users/test_user/S3/bucket1/log/2010/02/10/access_log-2010-02-10-00-07-28-EFREUTERGRSGDH'
-      )
-
-      File.should_receive(:dirname).with("bucket1/log/access_log-").and_return('bucket1/log')
-      File.should_receive(:join).any_number_of_times { |*args| args.join('/') }
-      
-      File.should_receive(:expand_path).with('/Test/Users/test_user/S3/bucket1/log/2010/02/10').and_return('/Test/Users/test_user/S3/bucket1/log/2010/02/10')
-      
-      # simulate small RLIMIT_NOFILE limit, then Ralf will set appropariate new RLIMIT_NOFILE
-      Process.should_receive(:getrlimit).with(Process::RLIMIT_NOFILE).and_return([10, 10])
-      Process.should_receive(:setrlimit).with(Process::RLIMIT_NOFILE, 2 + 100)
-
-      @bucket1.should_receive(:logging_info).and_return({ :enabled => true, :targetprefix => "log/access_log-", :targetbucket => 'bucket1' })
-      @bucket1.should_receive(:name).twice.and_return('bucket1')
-      
-      @ralf.merge_to_combined(@bucket1)
-
-      out_string.string.should eql('')
-    end
-
-    xit "should save logs which have a targetprefix containing a '/'" do
-      File.should_receive(:dirname).with("bucket1/log/access_log-").and_return('bucket1/log')
-      
-      bucket1_path = '/Test/Users/test_user/S3/bucket1/log/2010/02/10'
-      bucket2_path = '/Test/Users/test_user/S3/bucket2/log/2010/02/10'
-      [ bucket1_path, bucket2_path ].each do |path|
-        File.should_receive(:expand_path).once.ordered.with(path).and_return(path)
-      end
-
-      @ralf.local_log_dirname('bucket1', "log/access_log-").should  eql(bucket1_path)
-      @ralf.local_log_dirname('bucket2', "log/").should  eql(bucket2_path)
-    end
-
-    xit "should save to a subdir when a output_dir_format is given" do
-      path1 = '/Test/Users/test_user/S3/bucket1/log/2010/02/10'
-      File.should_receive(:expand_path).once.with(path1).and_return(path1)
-
-      @ralf.local_log_dirname('bucket1', "log/access_log-").should  eql(path1)
-
-      path2 = '/Test/Users/test_user/S3/bucket1/log/2010/w06'
-      File.should_receive(:expand_path).once.with(path2).and_return(path2)
-
-      @ralf.output_dir_format = ':year/w:week'
-      @ralf.local_log_dirname('bucket1', "log/").should  eql(path2)
-    end
-
-    xit "should get the proper directories" do
-      File.should_receive(:expand_path).with('/Test/Users/test_user/S3/bucket1/log/2010/02/10').and_return('/Test/Users/test_user/S3/bucket1/log/2010/02/10')
-      File.should_receive(:join).any_number_of_times { |*args| args.join('/') }
-      
-      # @key1.should_receive(:name).and_return('log/access_log-2010-02-10-00-05-32-ZDRFGTCKUYVJCT')
-      @ralf.local_log_file_basename_prefix('log/access_log-').should eql('access_log-')
-      @ralf.local_log_file_basename('log/access_log-', 'log/access_log-2010-02-10-00-05-32-ZDRFGTCKUYVJCT').should eql('access_log-2010-02-10-00-05-32-ZDRFGTCKUYVJCT')
-      @ralf.local_log_dirname('bucket1', 'log/access_log-').should eql('/Test/Users/test_user/S3/bucket1/log/2010/02/10')
-
-      # @key1.should_receive(:name).and_return('log/2010-02-10-00-05-32-ZDRFGTCKUYVJCT')
-      @ralf.local_log_file_basename_prefix('log/').should   eql('')
-      @ralf.local_log_file_basename('log/', 'log/2010-02-10-00-05-32-ZDRFGTCKUYVJCT').should   eql('2010-02-10-00-05-32-ZDRFGTCKUYVJCT')
-
-      path = '/Test/Users/test_user/S3/bucket2/log/2010/02/10'
-      File.should_receive(:expand_path).once.with(path).and_return(path)
-      @ralf.local_log_dirname('bucket2', 'log/').should eql(path)
-    end
-
   end
 
-  describe "Conversion" do
+  describe "Conversion of Amazon Log Format to Common Log Format" do
+  
+    it "should convert output files to common_log_format" do
+      input_log = StringIO.new
+      input_log.string = <<EOF_INPUT
+2cf7e6b06335c0689c6d29163df5bb001c96870cd78609e3845f1ed76a632621 assets.staging.kerkdienstgemist.nl [10/Feb/2010:07:17:01 +0000] 10.32.219.38 3272ee65a908a7677109fedda345db8d9554ba26398b2ca10581de88777e2b61 784FD457838EFF42 REST.GET.ACL - "GET /?acl HTTP/1.1" 200 - 1384 - 399 - "-" "Jakarta Commons-HttpClient/3.0" -
+2cf7e6b06335c0689c6d29163df5bb001c96870cd78609e3845f1ed76a632621 assets.staging.kerkdienstgemist.nl [10/Feb/2010:07:17:02 +0000] 10.32.219.38 3272ee65a908a7677109fedda345db8d9554ba26398b2ca10581de88777e2b61 6E239BC5A4AC757C SOAP.PUT.OBJECT logs/2010-02-10-07-17-02-F6EFD00DAB9A08B6 "POST /soap/ HTTP/1.1" 200 - 797 686 63 31 "-" "Axis/1.3" -
+2cf7e6b06335c0689c6d29163df5bb001c96870cd78609e3845f1ed76a632621 assets.staging.kerkdienstgemist.nl [10/Feb/2010:07:24:40 +0000] 10.217.37.15 - 0B76C90B3634290B REST.GET.ACL - "GET /?acl HTTP/1.1" 307 TemporaryRedirect 488 - 7 - "-" "Jakarta Commons-HttpClient/3.0" -
+EOF_INPUT
 
-    before(:each) do
-      config_file_expectations
+      clf_log =<<EOF_OUTPUT
+10.32.219.38 - 3272ee65a908a7677109fedda345db8d9554ba26398b2ca10581de88777e2b61 [10/Feb/2010:07:17:01 +0000] "GET /?acl HTTP/1.1" 200 1384 "-" "Jakarta Commons-HttpClient/3.0"
+10.32.219.38 - 3272ee65a908a7677109fedda345db8d9554ba26398b2ca10581de88777e2b61 [10/Feb/2010:07:17:02 +0000] "POST /soap/ HTTP/1.1" 200 797 "-" "Axis/1.3"
+10.217.37.15 - - [10/Feb/2010:07:24:40 +0000] "GET /?acl HTTP/1.1" 307 488 "-" "Jakarta Commons-HttpClient/3.0"
+EOF_OUTPUT
+
+      output_log = StringIO.new
       
-      @ralf    = Ralf.new(@valid_options)
-      @bucket1 = mock('bucket1')
+      File.should_receive(:open).with('input_file', 'r').and_yield(input_log)
+      File.should_receive(:open).with('output_file', 'w').and_return(output_log)
+
+      Ralf.convert_to_common_log_format('input_file', 'output_file')
+      output_log.string.should eql(clf_log)
     end
 
-    xit "should convert the alf to clf" do
-      File.should_receive(:open).once.with("/Test/Users/test_user/S3/s3_combined_bucket1_2010-02-10.log", "w").and_return(File)
-      File.should_receive(:open).once.with("/Test/Users/test_user/S3/s3_combined_bucket1_2010-02-10.alf", "r").and_return(File)
-      File.should_receive(:close).once.and_return(true)
-
-      File.should_receive(:join).any_number_of_times { |*args| args.join('/') }
-
-      @bucket1.stub(:name).twice.and_return('bucket1')
-      @ralf.convert_alf_to_clf(@bucket1).should eql(true)
-    end
-
-    xit "should find the proper values in a line" do
-      [ [
-        '2cf7e6b06335c0689c6d29163df5bb001c96870cd78609e3845f1ed76a632621 assets.staging.kerkdienstgemist.nl [10/Feb/2010:07:17:01 +0000] 10.32.219.38 3272ee65a908a7677109fedda345db8d9554ba26398b2ca10581de88777e2b61 784FD457838EFF42 REST.GET.ACL - "GET /?acl HTTP/1.1" 200 - 1384 - 399 - "-" "Jakarta Commons-HttpClient/3.0" -                        ',
-        '10.32.219.38 - 3272ee65a908a7677109fedda345db8d9554ba26398b2ca10581de88777e2b61 [10/Feb/2010:07:17:01 +0000] "GET /?acl HTTP/1.1" 200 1384 "-" "Jakarta Commons-HttpClient/3.0"'
-      ],[
-        '2cf7e6b06335c0689c6d29163df5bb001c96870cd78609e3845f1ed76a632621 assets.staging.kerkdienstgemist.nl [10/Feb/2010:07:17:02 +0000] 10.32.219.38 3272ee65a908a7677109fedda345db8d9554ba26398b2ca10581de88777e2b61 6E239BC5A4AC757C SOAP.PUT.OBJECT logs/2010-02-10-07-17-02-F6EFD00DAB9A08B6 "POST /soap/ HTTP/1.1" 200 - 797 686 63 31 "-" "Axis/1.3" -',
-        '10.32.219.38 - 3272ee65a908a7677109fedda345db8d9554ba26398b2ca10581de88777e2b61 [10/Feb/2010:07:17:02 +0000] "POST /soap/ HTTP/1.1" 200 797 "-" "Axis/1.3"'
-      ],[
-        '2cf7e6b06335c0689c6d29163df5bb001c96870cd78609e3845f1ed76a632621 assets.staging.kerkdienstgemist.nl [10/Feb/2010:07:24:40 +0000] 10.217.37.15 - 0B76C90B3634290B REST.GET.ACL - "GET /?acl HTTP/1.1" 307 TemporaryRedirect 488 - 7 - "-" "Jakarta Commons-HttpClient/3.0" -                                                                          ',
-        '10.217.37.15 - - [10/Feb/2010:07:24:40 +0000] "GET /?acl HTTP/1.1" 307 488 "-" "Jakarta Commons-HttpClient/3.0"'
-      ] ].each do |alf,clf|
-        @ralf.translate_to_clf(alf).should eql(clf)
-      end
-    end
-
-    xit "should mark invalid lines with '# ERROR: '" do
-      @ralf.translate_to_clf('An invalid line in the logfile').should match(/^# ERROR/)
+    it "should mark invalid lines with '# ERROR: '" do
+      $stderr = StringIO.new
+      invalid_line = "this is an invalid log line"
+      Ralf.translate_to_clf(invalid_line)
+      $stderr.string.should eql("# ERROR: #{invalid_line}\n")
     end
 
   end
