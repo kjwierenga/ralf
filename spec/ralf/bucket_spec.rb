@@ -6,29 +6,16 @@ require 'ralf/bucket'
 describe Ralf::Bucket do
   
   before(:all) do
-    @s3_mock = mock('S3')
-    Ralf::Bucket.s3 = @s3_mock
-    
     @valid_logging_info = {
       :enabled      => true,
       :targetbucket => 'targetbucket',
       :targetprefix => 'logs/',
     }
-    
-    # load example buckets (2 disabled)
-    @example_buckets = load_example_bucket_mocks
-    @enabled_buckets_count = @example_buckets.size - 2
-    
-    # make s3_mock return individual buckets
-    @s3_mock.should_receive(:bucket).any_number_of_times do |name|
-      @example_buckets[name]
-    end
-    
-    # make s3_mock return all buckets
-    @s3_mock.should_receive(:buckets).any_number_of_times.and_return(@example_buckets.values)
   end
   
   it "should initialize properly" do
+    mock_S3
+    
     name = 's3_bucket'
     logging_info = {
       :enabled      => true,
@@ -45,6 +32,8 @@ describe Ralf::Bucket do
   end
   
   it "should set targetbucket to bucket returned by logging_info" do
+    mock_S3
+    
     name = 's3_bucket'
     targetbucket_name = 's3_targetbucket'
     logging_info = {
@@ -60,6 +49,8 @@ describe Ralf::Bucket do
   end
   
   it "should support iteration over all buckets" do
+    mock_S3
+    
     yielded_buckets = []
     Ralf::Bucket.each do |bucket|
       yielded_buckets << bucket
@@ -69,6 +60,8 @@ describe Ralf::Bucket do
   end
 
   it "should support iteration over specific buckets" do
+    mock_S3
+    
     yielded_buckets = []
     Ralf::Bucket.each(@example_buckets.keys) do |bucket|
       yielded_buckets << bucket
@@ -82,6 +75,8 @@ describe Ralf::Bucket do
   end
   
   it "should support iterating over all logs in a bucket" do
+    mock_S3
+    
     bucket_mock = @example_buckets['test1']
     key1, key2 = mock('key1'), mock('key2')
     keys = [key1, key2]
@@ -102,6 +97,23 @@ describe Ralf::Bucket do
     end
     yielded_logs.should have(keys.size).items
     yielded_logs.should eql(expected_logs)
+  end
+  
+  def mock_S3
+    @s3_mock = mock('S3')
+    Ralf::Bucket.s3 = @s3_mock
+    
+    # load example buckets (2 disabled)
+    @example_buckets = load_example_bucket_mocks
+    @enabled_buckets_count = @example_buckets.size - 2
+    
+    # make s3_mock return individual buckets
+    @s3_mock.should_receive(:bucket).any_number_of_times do |name|
+      @example_buckets[name]
+    end
+    
+    # make s3_mock return all buckets
+    @s3_mock.should_receive(:buckets).any_number_of_times.and_return(@example_buckets.values)
   end
   
 end
