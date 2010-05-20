@@ -2,6 +2,9 @@ require 'ralf/interpolation'
 
 class Ralf::Config
   
+  USER_DEFAULT_CACHE_DIR = '~/.ralf/:bucket'
+  ROOT_DEFAULT_CACHE_DIR = '/var/log/ralf/:bucket'
+  
   class ConfigurationError < StandardError ; end
   class RangeError         < StandardError ; end
 
@@ -35,7 +38,7 @@ class Ralf::Config
     # assign defaults
     @options[:now]       ||= nil
     @options[:range]     ||= 'today'
-    @options[:cache_dir] ||= (0 == Process.uid ? '/var/log/ralf/:bucket' : File.expand_path("~/.ralf/:bucket"))
+    @options[:cache_dir] ||= (0 == Process.uid ? ROOT_DEFAULT_CACHE_DIR : File.expand_path(USER_DEFAULT_CACHE_DIR))
 
     assign_options(@options)
   end
