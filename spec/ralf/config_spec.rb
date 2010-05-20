@@ -107,5 +107,17 @@ describe Ralf::Config do
     config = Ralf::Config.new
     config.cache_dir_format.should eql('/Users/me/.ralf/:bucket')
   end
+  
+  it "should allow overriding bucket with merge!" do
+    config = Ralf::Config.new(:buckets => ['bucket1', 'bucket2'])
+    config.buckets = ['bucket3']
+    config.buckets.should eql(['bucket3'])
+  end
+  
+  it "should load configuration from file" do
+    YAML.should_receive(:load_file).with('my_config.yaml').and_return(@valid_options)
+    config = Ralf::Config.load_file('my_config.yaml')
+    config.output_file_format.should eql(@valid_options[:output_file])
+  end
 
 end
