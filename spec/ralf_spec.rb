@@ -66,7 +66,8 @@ describe Ralf do
   describe "Configuration Options" do
 
     it "should initialize properly" do
-      ralf = Ralf.new({:output_file => 'here'}.merge(@aws_credentials))
+      YAML.should_not_receive(:load_file)
+      ralf = Ralf.new({:output_file => 'here', :config_file => ''}.merge(@aws_credentials))
       ralf.class.should eql(Ralf)
     end
     
@@ -103,6 +104,7 @@ describe Ralf do
     end
     
     it "should have only required option when :config_file is empty string" do
+      YAML.should_not_receive(:load_file)
       File.should_not_receive(:exist?)
       ralf = Ralf.new({ :config_file => ''}.merge(@aws_credentials))
       ralf.config.should == Ralf::Config.new(@aws_credentials)
@@ -124,24 +126,27 @@ describe Ralf do
     end
 
     it "should set the preferences" do
-      ralf = Ralf.new(@cli_config)
+      YAML.should_not_receive(:load_file)
+      ralf = Ralf.new(@cli_config.merge(:config_file => ''))
       ralf.config.should == Ralf::Config.new(@cli_config)
     end
     
     it "should raise Ralf::Config::ConfigurationError when --output-file not specified" do
+      YAML.should_not_receive(:load_file)
       lambda {
-        Ralf.new(:output_file => nil)
+        Ralf.new(:output_file => nil, :config_file => '')
       }.should raise_error(Ralf::Config::ConfigurationError)
     end
 
     it "should use AWS credentials provided in ENV" do
+      YAML.should_not_receive(:load_file)
       lambda {
-        Ralf.new
+        Ralf.new(:config_file => '')
       }.should raise_error(Ralf::Config::ConfigurationError, 'aws_access_key_id missing, aws_secret_access_key missing')
 
       ENV['AWS_ACCESS_KEY_ID'], ENV['AWS_SECRET_ACCESS_KEY'] = 'aws_access_key', 'secret'
       lambda {
-        Ralf.new
+        Ralf.new(:config_file => '')
       }.should_not raise_error(Ralf::Config::ConfigurationError)
       
       # reset
@@ -153,6 +158,7 @@ describe Ralf do
   describe "Range handling" do
     
     it "should set range to today if unspecified" do
+      YAML.should_not_receive(:load_file)
       now = Time.now
       Time.should_receive(:now).any_number_of_times.and_return(now)
       ralf = Ralf.new(@valid_options)
@@ -162,11 +168,13 @@ describe Ralf do
     end
 
     it "should set the range when single date given" do
+      YAML.should_not_receive(:load_file)
       ralf = Ralf.new(@valid_options.merge(:range => '2010-02-01'))
       ralf.config.range.to_s.should eql('2010-02-01..2010-02-01')
     end
 
     it "should raise error when invalid date given" do
+      YAML.should_not_receive(:load_file)
       lambda {
         ralf = Ralf.new(@valid_options.merge(:range => 'someday'))
         ralf.range.should be_nil
@@ -174,45 +182,53 @@ describe Ralf do
     end
 
     it "should accept a range of 2 dates" do
+      YAML.should_not_receive(:load_file)
       ralf = Ralf.new(@valid_options.merge(:range => ['2010-02-10', '2010-02-12']))
       ralf.config.range.to_s.should eql('2010-02-10..2010-02-12')
     end
     
     it "should raise error for range array with more than 2 items" do
+      YAML.should_not_receive(:load_file)
       lambda {
         ralf = Ralf.new(@valid_options.merge(:range => ['2010-02-10', '2010-02-12', '2010-02-13']))
       }.should raise_error(ArgumentError, 'too many range items')
     end
 
     it "should treat a range with 1 date as a single date" do
+      YAML.should_not_receive(:load_file)
       ralf = Ralf.new(@valid_options.merge(:range => '2010-02-10'))
       ralf.config.range.to_s.should eql('2010-02-10..2010-02-10')
     end
 
     it "should accept a range array with 1 date" do
+      YAML.should_not_receive(:load_file)
       ralf = Ralf.new(@valid_options.merge(:range => ['2010-02-10']))
       ralf.config.range.to_s.should eql('2010-02-10..2010-02-10')
     end
 
     it "should accept a range defined by words" do
+      YAML.should_not_receive(:load_file)
       Time.should_receive(:now).any_number_of_times.and_return(Time.parse('Mon Feb 17 09:41:00 +0100 2010'))
       ralf = Ralf.new(@valid_options.merge(:range => '2 days ago'))
       ralf.config.range.to_s.should eql('2010-02-15..2010-02-15')
     end
 
     it "should accept a month and convert it to a range" do
+      YAML.should_not_receive(:load_file)
       Time.should_receive(:now).any_number_of_times.and_return(Time.parse('Mon Feb 17 09:41:00 +0100 2010'))
       ralf = Ralf.new(@valid_options.merge(:range => 'january'))
       ralf.config.range.to_s.should  eql('2010-01-01..2010-01-31')
     end
     
     it "should allow 'this month' with base 'yesterday'" do
+      YAML.should_not_receive(:load_file)
       Time.should_receive(:now).any_number_of_times.and_return(Time.parse('Sat May 01 16:31:00 +0100 2010'))
       ralf = Ralf.new(@valid_options.merge(:range => 'this month', :now => 'yesterday'))
       ralf.config.range.to_s.should eql('2010-04-01..2010-04-30')
     end
     
     it "should support setting range first then change now (1st day of month)" do
+      YAML.should_not_receive(:load_file)
       Time.should_receive(:now).any_number_of_times.and_return(Time.parse('Sat May 01 16:31:00 +0100 2010'))
       ralf = Ralf.new(@valid_options.merge(:range => 'this month'))
       ralf.config.range.to_s.should eql('2010-05-01..2010-05-01')
@@ -221,6 +237,7 @@ describe Ralf do
     end
 
     it "should support setting range first then change now" do
+      YAML.should_not_receive(:load_file)
       Time.should_receive(:now).any_number_of_times.and_return(Time.parse('Sat May 08 16:31:00 +0100 2010'))
       ralf = Ralf.new(@valid_options.merge(:range => 'this month'))
       ralf.config.range.to_s.should eql('2010-05-01..2010-05-07')
@@ -233,6 +250,7 @@ describe Ralf do
   describe "Handle Buckets" do
 
     it "should download, merge and convert logfiles" do
+      YAML.should_not_receive(:load_file)
       @s3_mock.should_receive(:bucket).any_number_of_times do |name|
         @example_buckets[name]
       end
@@ -274,14 +292,16 @@ describe Ralf do
     end
     
     it "should raise error when output_file option is missing" do
-      ralf = Ralf.new(@aws_credentials)
+      YAML.should_not_receive(:load_file)
+      ralf = Ralf.new(@aws_credentials.merge(:config_file => ''))
       lambda {
         ralf.run
       }.should raise_error(ArgumentError, "--output-file required")
     end
     
     it "should raise error when output_file option requires :bucket variable" do
-      ralf = Ralf.new(@aws_credentials.merge(:output_file => '/tmp/ralf/ralf.log'))
+      YAML.should_not_receive(:load_file)
+      ralf = Ralf.new(@aws_credentials.merge(:output_file => '/tmp/ralf/ralf.log', :config_file => ''))
       lambda {
         ralf.run
       }.should raise_error(ArgumentError, "--output-file requires ':bucket' variable")
