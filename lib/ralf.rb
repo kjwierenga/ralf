@@ -150,14 +150,14 @@ class Ralf
   end
 
   def load_config(cli_config_file)
-    config = nil
+    result = nil
     if cli_config_file
-      config = Ralf::Config.load_file(cli_config_file) unless cli_config_file.empty?
+      result = Ralf::Config.load_file(cli_config_file) unless cli_config_file.empty?
     else
       config_file = (0 == Process.uid ? ROOT_DEFAULT_CONFIG_FILE : File.expand_path(USER_DEFAULT_CONFIG_FILE))
-      config = Ralf::Config.load_file(config_file) if File.exist?(config_file)
+      result = Ralf::Config.load_file(config_file) if File.exist?(config_file)
     end
-    config || Ralf::Config.new
+    result || Ralf::Config.new
   end
   
   def self.update_rlimit_nofile(number_of_files)
