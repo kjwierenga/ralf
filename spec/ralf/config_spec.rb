@@ -15,9 +15,8 @@ describe Ralf::Config do
     
     @valid_options = {
       :output_file           => 'my_log.log',
-      :aws_access_key_id     => 'my_access_key_id',
-      :aws_secret_access_key => 'my_secret_access_key',
     }.merge(@aws_credentials)
+
     @date = Date.strptime('2010-02-09')
     @bucket = 'my.bucket.org'
   end
