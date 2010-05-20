@@ -18,6 +18,14 @@ describe Ralf::Bucket do
     # load example buckets (2 disabled)
     @example_buckets = load_example_bucket_mocks
     @enabled_buckets_count = @example_buckets.size - 2
+    
+    # make s3_mock return individual buckets
+    @s3_mock.should_receive(:bucket).any_number_of_times do |name|
+      @example_buckets[name]
+    end
+    
+    # make s3_mock return all buckets
+    @s3_mock.should_receive(:buckets).any_number_of_times.and_return(@example_buckets.values)
   end
   
   it "should initialize properly" do
@@ -48,15 +56,10 @@ describe Ralf::Bucket do
     bucket.should_receive(:logging_info).and_return(logging_info)
     bucket.should_receive(:name).and_return(name)
     
-    @s3_mock.should_receive(:bucket).with(targetbucket_name).and_return(mock('s3_targetbucket'))
     Ralf::Bucket.new(bucket)
   end
   
   it "should support iteration over all buckets" do
-    @s3_mock.should_receive(:bucket).any_number_of_times do |name|
-      @example_buckets[name]
-    end
-    @s3_mock.should_receive(:buckets).and_return(@example_buckets.values)
     yielded_buckets = []
     Ralf::Bucket.each do |bucket|
       yielded_buckets << bucket
@@ -66,11 +69,6 @@ describe Ralf::Bucket do
   end
 
   it "should support iteration over specific buckets" do
-    @s3_mock.should_receive(:bucket).any_number_of_times do |name|
-      @example_buckets[name]
-    end
-    @example_buckets.each do |name, mock|
-    end
     yielded_buckets = []
     Ralf::Bucket.each(@example_buckets.keys) do |bucket|
       yielded_buckets << bucket
