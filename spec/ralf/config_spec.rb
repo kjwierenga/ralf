@@ -95,5 +95,18 @@ describe Ralf::Config do
     config.merge!(:now => '2010-05-06')
     config.range.to_s.should eql('2010-05-01..2010-05-06')
   end
+  
+  it "should set default cache_dir to '/var/log/ralf/:bucket' when running as root" do
+    Process.should_receive(:uid).and_return(0)
+    config = Ralf::Config.new
+    config.cache_dir_format.should eql('/var/log/ralf/:bucket')
+  end
+  
+  it "should set default cache_dir to '~/.ralf/:bucket' when running as regular user" do
+    Process.should_receive(:uid).and_return(1)
+    File.should_receive(:expand_path).with('~/.ralf/:bucket').and_return('/Users/me/.ralf/:bucket')
+    config = Ralf::Config.new
+    config.cache_dir_format.should eql('/Users/me/.ralf/:bucket')
+  end
 
 end

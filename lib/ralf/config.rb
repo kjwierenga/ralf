@@ -35,7 +35,7 @@ class Ralf::Config
     # assign defaults
     @options[:now]       ||= nil
     @options[:range]     ||= 'today'
-    @options[:cache_dir] ||= File.expand_path("~/.ralf_cache/:bucket")
+    @options[:cache_dir] ||= (0 == Process.uid ? '/var/log/ralf/:bucket' : File.expand_path("~/.ralf/:bucket"))
 
     assign_options(@options)
   end
@@ -106,6 +106,10 @@ class Ralf::Config
   
   def cache_dir(variables)
     Ralf::Interpolation.interpolate(@cache_dir, variables, [:bucket])
+  end
+  
+  def cache_dir_format
+    @cache_dir
   end
   
   def empty?
