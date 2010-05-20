@@ -13,8 +13,8 @@ class Ralf
 
   public
 
-  ROOT_CONFIG_FILE = '/etc/ralf.conf'
-  USER_CONFIG_FILE = '~/.ralf.conf'
+  ROOT_DEFAULT_CONFIG_FILE = '/etc/ralf.conf'
+  USER_DEFAULT_CONFIG_FILE = '~/.ralf.conf'
 
   AMAZON_LOG_FORMAT = Regexp.new('([^ ]*) ([^ ]*) \[([^\]]*)\] ([^ ]*) ([^ ]*) ([^ ]*) ([^ ]*) ([^ ]*) "([^"]*)" ([^ ]*) ([^ ]*) ([^ ]*) ([^ ]*) ([^ ]*) ([^ ]*) "([^"]*)" "([^"]*)"')
   
@@ -154,7 +154,7 @@ class Ralf
     if cli_config_file
       config = Ralf::Config.load_file(cli_config_file) unless cli_config_file.empty?
     else
-      config_file = (0 == Process.uid ? ROOT_CONFIG_FILE : File.expand_path(USER_CONFIG_FILE))
+      config_file = (0 == Process.uid ? ROOT_DEFAULT_CONFIG_FILE : File.expand_path(USER_DEFAULT_CONFIG_FILE))
       config = Ralf::Config.load_file(config_file) if File.exist?(config_file)
     end
     config || Ralf::Config.new
