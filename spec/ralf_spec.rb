@@ -78,15 +78,24 @@ describe Ralf do
       ralf.config.should == Ralf::Config.new(@cli_config)
     end
     
-    it "should read config file from '~/.ralf.conf' if it exists." do
+    it "should read config file from '~/.ralf.conf' if not running as root." do
+      Process.should_receive(:uid).and_return(1)
       File.should_receive(:exist?).with(@tilde_config_path).and_return(true)
       YAML.should_receive(:load_file).with(@tilde_config_path).and_return(@tilde_config)
       ralf = Ralf.new
       ralf.config.should == Ralf::Config.new(@tilde_config)
     end
     
-    it "should read config file from '/etc/ralf.conf' if ~/.ralf.conf does not exist." do
-      File.should_receive(:exist?).with(@tilde_config_path).and_return(false)
+    it "should read config file from '/etc/ralf.conf' if running as root." do
+      Process.should_receive(:uid).and_return(0)
+      File.should_receive(:exist?).with(@etc_config_path).and_return(true)
+      YAML.should_receive(:load_file).with(@etc_config_path).and_return(@etc_config)
+      ralf = Ralf.new
+      ralf.config.should == Ralf::Config.new(@etc_config)
+    end
+
+    it "should read config file from '~/.ralf.conf' if running as root and /etc/ralf doesn't exist." do
+      Process.should_receive(:uid).and_return(0)
       File.should_receive(:exist?).with(@etc_config_path).and_return(true)
       YAML.should_receive(:load_file).with(@etc_config_path).and_return(@etc_config)
       ralf = Ralf.new

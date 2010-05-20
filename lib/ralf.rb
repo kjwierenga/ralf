@@ -13,7 +13,9 @@ class Ralf
 
   public
 
-  CONFIG_FILE_PATHS = [ '~/.ralf.conf', '/etc/ralf.conf' ]
+  ROOT_CONFIG_FILE = '/etc/ralf.conf'
+  USER_CONFIG_FILE = '~/.ralf.conf'
+
   AMAZON_LOG_FORMAT = Regexp.new('([^ ]*) ([^ ]*) \[([^\]]*)\] ([^ ]*) ([^ ]*) ([^ ]*) ([^ ]*) ([^ ]*) "([^"]*)" ([^ ]*) ([^ ]*) ([^ ]*) ([^ ]*) ([^ ]*) ([^ ]*) "([^"]*)" "([^"]*)"')
   
   # The current configuration.
@@ -38,7 +40,7 @@ class Ralf
   def initialize(options = {})
     initial_options = options.dup
 
-    @config = read_cli_or_default_config(initial_options.delete(:config_file), CONFIG_FILE_PATHS)
+    @config = load_config(initial_options.delete(:config_file))
     
     config.merge!(initial_options)
     config.validate!
@@ -147,16 +149,13 @@ class Ralf
     end
   end
 
-  def read_cli_or_default_config(cli_config_file, default_config_files)
+  def load_config(cli_config_file)
     config = nil
     if cli_config_file
       config = Ralf::Config.load_file(cli_config_file) unless cli_config_file.empty?
     else
-      default_config_files.each do |file|
-        file = File.expand_path(file)
-        next unless File.exist?(file)
-        break if config = Ralf::Config.load_file(file)
-      end
+      config_file = (0 == Process.uid ? ROOT_CONFIG_FILE : File.expand_path(USER_CONFIG_FILE))
+      config = Ralf::Config.load_file(config_file) if File.exist?(config_file)
     end
     config || Ralf::Config.new
   end
