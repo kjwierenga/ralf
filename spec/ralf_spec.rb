@@ -2,10 +2,6 @@ require File.dirname(__FILE__) + '/spec_helper'
 
 require 'ralf'
 
-# CONFIG_FIXTURE_PATH = File.expand_path(File.dirname(__FILE__) + '/fixtures/config.yaml')
-# # FULL_CONFIG_PATH    = File.expand_path(CONFIG_PATH)
-# CONFIG_FIXTURE_YAML = YAML.load_file(CONFIG_FIXTURE_PATH)
-
 describe Ralf do
 
   before(:all) do
