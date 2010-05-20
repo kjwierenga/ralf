@@ -81,7 +81,7 @@ Directory name(s) in which to cache downloaded log files. Optional.
     range specified by --range. E.g. "/var/run/s3_cache/:year/:month/:day/:bucket"
     expands to 31 directories for range 2010-01-01..2010-01-31.
     
-    Defaults to '~/.ralf_cache/:bucket'.
+    Defaults to '~/.ralf/:bucket' or '/var/log/ralf/:bucket' (when running as root).
 CACHE_DIR_HELP
       opts.on("-x", "--cache-dir FORMAT", cache_dir_help) do |format|
         options[:cache_dir] = format
@@ -105,10 +105,10 @@ CACHE_DIR_HELP
 Path to file with configuration settings (in YAML format).
 
     Configuration settings are read from the (-c) specified configuration file
-    or from ~/.ralf or from /etc/ralf (in that order, if the file exists).
-    Command-line options override settings read from a configuration file.
+    or from ~/.ralf.conf or from /etc/ralf.conf (when running as root).
+    Command-line options override settings read from the configuration file.
 
-    Configuration files must be in YAML format. Each command-line options has an
+    The configuration file must be in YAML format. Each command-line options has an
     equivalent setting in a configuration file replacing dash (-) by underscore(_).
 
     The Amazon Access Key Id and Secret Access Key can only be specified in the 
@@ -118,9 +118,8 @@ Path to file with configuration settings (in YAML format).
       aws_access_key_id:     my_access_key_id
       aws_secret_access_key: my_secret_access_key
 
-    Command-line options always override the options loaded from the configuration file.
-    To prevent loading of any configuration from file simply specify -c or
-    --config-file without an argument.
+    To only use command-line options simply specify -c or --config-file without
+    an argument.
 CONFIG_FILE_HELP
       opts.on("-c", "--config-file [FILE]", config_file_help) do |file|
         options[:config_file] = file
