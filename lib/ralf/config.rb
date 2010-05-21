@@ -46,7 +46,7 @@ class Ralf::Config
   def merge!(options)
     @options.merge!(options)
 
-    assign_options(@options)
+    assign_options(options)
   end
   
   def debug?
@@ -68,6 +68,8 @@ class Ralf::Config
   def range=(args)
     args ||= []
     args = [args] unless args.is_a?(Array)
+    
+    @range_value = args
     
     raise ArgumentError.new("too many range items") if args.size > 2
 
@@ -151,8 +153,10 @@ class Ralf::Config
     options = new_options.dup
 
     # always re-assign range in case now has changed
-    self.now   = options.delete(:now)   if options.has_key?(:now)
-    self.range = options.delete(:range) if options.has_key?(:range)
+    if options.has_key?(:now)
+      self.now   = options.delete(:now)   
+      self.range = options.delete(:range) || @range_value
+    end
     options.each do |attr, val|
       begin
         self.send("#{attr.to_s}=", val)
