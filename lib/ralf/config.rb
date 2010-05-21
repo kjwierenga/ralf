@@ -153,7 +153,20 @@ class Ralf::Config
     # always re-assign range in case now has changed
     self.now   = options.delete(:now)   if options.has_key?(:now)
     self.range = options.delete(:range) if options.has_key?(:range)
-    options.each { |attr, val| self.send("#{attr.to_s}=", val) }
+    options.each do |attr, val|
+      begin
+        self.send("#{attr.to_s}=", val)
+      rescue NoMethodError => e
+        puts "Warning: invalid configuration variable: #{method_name(e)}"
+      end
+    end
+  end
+  
+  # Take NoMethodException string and extract the method name,
+  # e.g. "undefined method `out_path=' for #<Ralf::Config:0x17931b8>"
+  # should return 'out_path'
+  def method_name(e)
+    e.to_s.split('`')[1].split('=')[0]
   end
   
 end

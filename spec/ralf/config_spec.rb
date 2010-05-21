@@ -119,5 +119,13 @@ describe Ralf::Config do
     config = Ralf::Config.load_file('my_config.yaml')
     config.output_file_format.should eql(@valid_options[:output_file])
   end
+  
+  it "should warn and continue (not raise exception) when unknown configuration variables are set" do
+    $stdout = StringIO.new
+    lambda {
+      config = Ralf::Config.new(:unknown_variable => 100)
+    }.should_not raise_error
+    $stdout.string.should eql("Warning: invalid configuration variable: unknown_variable\n")
+  end
 
 end
