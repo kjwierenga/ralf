@@ -5,6 +5,8 @@ require 'ftools'
 require 'ralf/config'
 require 'ralf/bucket'
 require 'chronic'
+require 'stringio'
+require 'date'
 
 class Ralf
 
