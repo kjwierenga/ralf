@@ -30,6 +30,7 @@ Gem::Specification.new do |s|
      "lib/ralf/interpolation.rb",
      "lib/ralf/log.rb",
      "lib/ralf/option_parser.rb",
+     "ralf.gemspec",
      "spec/fixtures/apache.log",
      "spec/fixtures/example_buckets.yaml",
      "spec/ralf/bucket_spec.rb",
