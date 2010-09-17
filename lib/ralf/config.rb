@@ -1,4 +1,5 @@
 require 'ralf/interpolation'
+require 'yaml'
 
 class Ralf::Config
   
