@@ -19,6 +19,7 @@ class Ralf
   USER_DEFAULT_CONFIG_FILE = '~/.ralf.conf'
 
   AMAZON_LOG_FORMAT = Regexp.new('([^ ]*) ([^ ]*) \[([^\]]*)\] ([^ ]*) ([^ ]*) ([^ ]*) ([^ ]*) ([^ ]*) "([^"]*)" ([^ ]*) ([^ ]*) ([^ ]*) ([^ ]*) ([^ ]*) ([^ ]*) "([^"]*)" "([^"]*)"')
+  AMAZON_LOG_FORMAT_COPY = Regexp.new('([^ ]*) ([^ ]*) \[([^\]]*)\] ([^ ]*) ([^ ]*) ([^ ]*) (REST.COPY.OBJECT_GET) ([^ ]*) (-) ([^ ]*) (-) (-) ([^ ]*) (-) (-) (-) (-) (-)')
   
   # The current configuration.
   attr_reader :config
@@ -148,8 +149,11 @@ class Ralf
     if line =~ AMAZON_LOG_FORMAT
       # host, date, ip, acl, request, status, bytes, agent = $2, $3, $4, $5, $9, $10, $12, $17
       "%s - %s [%s] \"%s\" %d %s \"%s\" \"%s\"" % [$4, $5, $3, $9, $10, $12, $16, $17]
+    elsif line =~ AMAZON_LOG_FORMAT_COPY
+      "%s - %s [%s] \"%s\" %d %s \"%s\" \"REST.COPY.OBJECT_GET\"" % [$4, $5, $3, "POST /#{$8} HTTP/1.1", $10, $12, $16]
     else
       $stderr.puts "# ERROR: #{line}"
+      nil
     end
   end
 
