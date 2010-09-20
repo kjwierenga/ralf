@@ -136,7 +136,9 @@ class Ralf
     out_file = File.open(output_log, 'w')
     File.open(input_log, 'r') do |in_file|
       while (line = in_file.gets)
-        out_file.puts(translate_to_clf(line))
+        if clf = translate_to_clf(line)
+          out_file.puts(clf)
+        end
       end
     end
     out_file.close
