@@ -147,8 +147,13 @@ class Ralf
 
   def self.translate_to_clf(line)
     if line =~ AMAZON_LOG_FORMAT
-      # host, date, ip, acl, request, status, bytes, agent = $2, $3, $4, $5, $9, $10, $12, $17
-      "%s - %s [%s] \"%s\" %d %s \"%s\" \"%s\"" % [$4, $5, $3, $9, $10, $12, $16, $17]
+      if 206 == $10.to_i && $14.to_i < 500
+        $stderr.puts "# ERROR: unreasonable 206: #{line}"
+        nil
+      else
+        # host, date, ip, acl, request, status, bytes, agent = $2, $3, $4, $5, $9, $10, $12, $17
+        "%s - %s [%s] \"%s\" %d %s \"%s\" \"%s\"" % [$4, $5, $3, $9, $10, $12, $16, $17]
+      end
     elsif line =~ AMAZON_LOG_FORMAT_COPY
       "%s - %s [%s] \"%s\" %d %s \"%s\" \"REST.COPY.OBJECT_GET\"" % [$4, $5, $3, "POST /#{$8} HTTP/1.1", $10, $12, $16]
     else
