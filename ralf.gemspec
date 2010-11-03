@@ -5,11 +5,11 @@
 
 Gem::Specification.new do |s|
   s.name = %q{ralf}
-  s.version = "1.1.0"
+  s.version = "1.0.3"
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.authors = ["Klaas Jan Wierenga", "Leon Berenschot"]
-  s.date = %q{2011-05-09}
+  s.date = %q{2010-11-03}
   s.default_executable = %q{ralf}
   s.description = %q{      Download logfiles from Amazon S3 buckets to local disk and combine them in one Apache CLF per bucket
 }
@@ -43,6 +43,7 @@ Gem::Specification.new do |s|
     "spec/spec_helper.rb",
     "spec/support/fakeweb.rb"
   ]
+  s.has_rdoc = false
   s.homepage = %q{http://github.com/kjwierenga/ralf}
   s.rdoc_options = ["--exclude", "."]
   s.require_paths = ["lib"]
