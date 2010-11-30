@@ -5,11 +5,11 @@
 
 Gem::Specification.new do |s|
   s.name = %q{ralf}
-  s.version = "1.0.2"
+  s.version = "1.0.3"
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.authors = ["Klaas Jan Wierenga", "Leon Berenschot"]
-  s.date = %q{2010-09-20}
+  s.date = %q{2010-11-30}
   s.default_executable = %q{ralf}
   s.description = %q{      Download logfiles from Amazon S3 buckets to local disk and combine them in one Apache CLF per bucket
 }
