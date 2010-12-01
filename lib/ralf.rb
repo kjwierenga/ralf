@@ -149,7 +149,7 @@ class Ralf
     if line =~ AMAZON_LOG_FORMAT
       # If request is 206 Partial Content estimate the actual bytes when apparent bandwidth has exceeded 2Mbit/sec.
       if 206 == $10.to_i && (($12.to_i*8)/$14.to_i > 2000)
-        estimated_bytes = 128*1024 + 3*$14.to_i # 128 K buffer + 3 bytes/msec = 3 kbytes/sec = 24 kbit/sec
+        estimated_bytes = [ 128*1024 + 3*$14.to_i, $12.to_i ].min # 128 K buffer + 3 bytes/msec = 3 kbytes/sec = 24 kbit/sec
         "%s - %s [%s] \"%s\" %s %s \"%s\" \"%s\" %d" % [$4, $5, $3, $9, $10, estimated_bytes, $16, $17, ($14.to_i/1000.0).round]
       else
         # host, date, ip, acl, request, status, bytes, agent, total_time_ms = $2, $3, $4, $5, $9, $10, $12, $17, $14
