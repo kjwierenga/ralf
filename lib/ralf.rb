@@ -147,7 +147,7 @@ class Ralf
 
   def self.translate_to_clf(line)
     if line =~ AMAZON_LOG_FORMAT
-      if 206 == $10.to_i && ($12.to_i > 3*1024*1024) && ($12.to_i < 500)
+      if 206 == $10.to_i && ($12.to_i > 3*1024*1024) && ($14.to_i < 500)
         $stderr.puts "# ERROR: unreasonable 206: #{line}"
         nil
       else
