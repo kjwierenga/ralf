@@ -333,14 +333,54 @@ EOF_OUTPUT
 
       output_log = StringIO.new
       
-      File.should_receive(:open).with('input_file', 'r').and_yield(input_log)
       File.should_receive(:open).with('output_file', 'w').and_return(output_log)
+      File.should_receive(:open).with('input_file', 'r').and_yield(input_log)
       
       # $stderr.should_receive(:puts).with("# ERROR: 2cf7e6b06335c0689c6d29163df5bb001c96870cd78609e3845f1ed76a632621 media.staging.kerkdienstgemist.nl [17/Sep/2010:13:38:36 +0000] 85.113.244.146 2cf7e6b06335c0689c6d29163df5bb001c96870cd78609e3845f1ed76a632621 71F7D2AAA93B0A05 REST.COPY.OBJECT_GET 10010150/2010-08-29-0930.mp3 - 200 - - 13538337 - - - - -\n")
       # $stderr.should_receive(:puts).with("# ERROR: 2cf7e6b06335c0689c6d29163df5bb001c96870cd78609e3845f1ed76a632621 media.staging.kerkdienstgemist.nl [17/Sep/2010:13:38:37 +0000] 85.113.244.146 2cf7e6b06335c0689c6d29163df5bb001c96870cd78609e3845f1ed76a632621 7CC5E3D09AE78CAE REST.COPY.OBJECT_GET 10010150/2010-09-05-1000.mp3 - 200 - - 9860402 - - - - -\n")
 
       Ralf.convert_to_common_log_format('input_file', 'output_file')
       output_log.string.should eql(clf_log)
+    end
+    
+    it "should estimate Actual Bytes Sent of transfers from Bytes Sent and Total Time" do
+      output_log = StringIO.new
+      winamp_log = File.open(File.join(File.dirname(__FILE__), 'fixtures', 'winamp.txt'), 'r')
+
+      File.should_receive(:open).with('output_file', 'w').and_return(output_log)
+      File.should_receive(:open).with('input_file',  'r').and_yield(winamp_log)
+
+      Ralf.convert_to_common_log_format('input_file', 'output_file')
+
+      expected_clf_log =<<EOF_OUTPUT
+84.82.12.240 - 2cf7e6b06335c0689c6d29163df5bb001c96870cd78609e3845f1ed76a632621 [03/Nov/2010:15:57:29 +0000] "GET /10122150/2010-10-31-0930.mp3?Signature=5n2%2B8hrDvgSbP6OJRP1vVav42uU%3D&Expires=1288807041&AWSAccessKeyId=AKIAI3XHXJPFSJW2UQAQ HTTP/1.0" 200 4215272 "-" "WinampMPEG/5.56, Ultravox/2.1" 5
+84.82.12.240 - 2cf7e6b06335c0689c6d29163df5bb001c96870cd78609e3845f1ed76a632621 [03/Nov/2010:15:57:34 +0000] "GET /10122150/2010-10-31-0930.mp3?Signature=5n2%2B8hrDvgSbP6OJRP1vVav42uU%3D&Expires=1288807041&AWSAccessKeyId=AKIAI3XHXJPFSJW2UQAQ HTTP/1.1" 206 4210177 "-" "WinampMPEG/5.56" 4
+84.82.12.240 - 2cf7e6b06335c0689c6d29163df5bb001c96870cd78609e3845f1ed76a632621 [03/Nov/2010:15:57:38 +0000] "GET /10122150/2010-10-31-0930.mp3?Signature=5n2%2B8hrDvgSbP6OJRP1vVav42uU%3D&Expires=1288807041&AWSAccessKeyId=AKIAI3XHXJPFSJW2UQAQ HTTP/1.1" 206 4200071 "-" "WinampMPEG/5.56" 4
+84.82.12.240 - 2cf7e6b06335c0689c6d29163df5bb001c96870cd78609e3845f1ed76a632621 [03/Nov/2010:15:57:42 +0000] "GET /10122150/2010-10-31-0930.mp3?Signature=5n2%2B8hrDvgSbP6OJRP1vVav42uU%3D&Expires=1288807041&AWSAccessKeyId=AKIAI3XHXJPFSJW2UQAQ HTTP/1.1" 206 4233474 "-" "WinampMPEG/5.56" 3
+84.82.12.240 - 2cf7e6b06335c0689c6d29163df5bb001c96870cd78609e3845f1ed76a632621 [03/Nov/2010:15:57:45 +0000] "GET /10122150/2010-10-31-0930.mp3?Signature=5n2%2B8hrDvgSbP6OJRP1vVav42uU%3D&Expires=1288807041&AWSAccessKeyId=AKIAI3XHXJPFSJW2UQAQ HTTP/1.1" 206 4230605 "-" "WinampMPEG/5.56" 13
+84.82.12.240 - 2cf7e6b06335c0689c6d29163df5bb001c96870cd78609e3845f1ed76a632621 [03/Nov/2010:15:57:58 +0000] "GET /10122150/2010-10-31-0930.mp3?Signature=5n2%2B8hrDvgSbP6OJRP1vVav42uU%3D&Expires=1288807041&AWSAccessKeyId=AKIAI3XHXJPFSJW2UQAQ HTTP/1.1" 206 3920952 "-" "WinampMPEG/5.56" 3
+84.82.12.240 - 2cf7e6b06335c0689c6d29163df5bb001c96870cd78609e3845f1ed76a632621 [03/Nov/2010:15:58:01 +0000] "GET /10122150/2010-10-31-0930.mp3?Signature=5n2%2B8hrDvgSbP6OJRP1vVav42uU%3D&Expires=1288807041&AWSAccessKeyId=AKIAI3XHXJPFSJW2UQAQ HTTP/1.1" 206 4226689 "-" "WinampMPEG/5.56" 3
+84.82.12.240 - 2cf7e6b06335c0689c6d29163df5bb001c96870cd78609e3845f1ed76a632621 [03/Nov/2010:15:58:04 +0000] "GET /10122150/2010-10-31-0930.mp3?Signature=5n2%2B8hrDvgSbP6OJRP1vVav42uU%3D&Expires=1288807041&AWSAccessKeyId=AKIAI3XHXJPFSJW2UQAQ HTTP/1.1" 206 4217974 "-" "WinampMPEG/5.56" 3
+84.82.12.240 - 2cf7e6b06335c0689c6d29163df5bb001c96870cd78609e3845f1ed76a632621 [03/Nov/2010:15:58:07 +0000] "GET /10122150/2010-10-31-0930.mp3?Signature=5n2%2B8hrDvgSbP6OJRP1vVav42uU%3D&Expires=1288807041&AWSAccessKeyId=AKIAI3XHXJPFSJW2UQAQ HTTP/1.1" 206 4227033 "-" "WinampMPEG/5.56" 3
+84.82.12.240 - 2cf7e6b06335c0689c6d29163df5bb001c96870cd78609e3845f1ed76a632621 [03/Nov/2010:15:58:10 +0000] "GET /10122150/2010-10-31-0930.mp3?Signature=5n2%2B8hrDvgSbP6OJRP1vVav42uU%3D&Expires=1288807041&AWSAccessKeyId=AKIAI3XHXJPFSJW2UQAQ HTTP/1.1" 206 4229800 "-" "WinampMPEG/5.56" 6
+84.82.12.240 - 2cf7e6b06335c0689c6d29163df5bb001c96870cd78609e3845f1ed76a632621 [03/Nov/2010:15:58:16 +0000] "GET /10122150/2010-10-31-0930.mp3?Signature=5n2%2B8hrDvgSbP6OJRP1vVav42uU%3D&Expires=1288807041&AWSAccessKeyId=AKIAI3XHXJPFSJW2UQAQ HTTP/1.1" 206 4169752 "-" "WinampMPEG/5.56" 3
+84.82.12.240 - 2cf7e6b06335c0689c6d29163df5bb001c96870cd78609e3845f1ed76a632621 [03/Nov/2010:15:58:19 +0000] "GET /10122150/2010-10-31-0930.mp3?Signature=5n2%2B8hrDvgSbP6OJRP1vVav42uU%3D&Expires=1288807041&AWSAccessKeyId=AKIAI3XHXJPFSJW2UQAQ HTTP/1.1" 206 4221938 "-" "WinampMPEG/5.56" 3
+84.82.12.240 - 2cf7e6b06335c0689c6d29163df5bb001c96870cd78609e3845f1ed76a632621 [03/Nov/2010:15:58:22 +0000] "GET /10122150/2010-10-31-0930.mp3?Signature=5n2%2B8hrDvgSbP6OJRP1vVav42uU%3D&Expires=1288807041&AWSAccessKeyId=AKIAI3XHXJPFSJW2UQAQ HTTP/1.1" 206 4116176 "-" "WinampMPEG/5.56" 4
+84.82.12.240 - 2cf7e6b06335c0689c6d29163df5bb001c96870cd78609e3845f1ed76a632621 [03/Nov/2010:15:58:26 +0000] "GET /10122150/2010-10-31-0930.mp3?Signature=5n2%2B8hrDvgSbP6OJRP1vVav42uU%3D&Expires=1288807041&AWSAccessKeyId=AKIAI3XHXJPFSJW2UQAQ HTTP/1.1" 206 3134615 "-" "WinampMPEG/5.56" 0
+84.82.12.240 - 2cf7e6b06335c0689c6d29163df5bb001c96870cd78609e3845f1ed76a632621 [03/Nov/2010:15:58:33 +0000] "GET /10122150/2010-10-31-0930.mp3?Signature=5n2%2B8hrDvgSbP6OJRP1vVav42uU%3D&Expires=1288807041&AWSAccessKeyId=AKIAI3XHXJPFSJW2UQAQ HTTP/1.1" 206 2546843 "-" "WinampMPEG/5.56" 0
+84.82.12.240 - 2cf7e6b06335c0689c6d29163df5bb001c96870cd78609e3845f1ed76a632621 [03/Nov/2010:15:58:37 +0000] "GET /10122150/2010-10-31-0930.mp3?Signature=5n2%2B8hrDvgSbP6OJRP1vVav42uU%3D&Expires=1288807041&AWSAccessKeyId=AKIAI3XHXJPFSJW2UQAQ HTTP/1.1" 206 1861439 "-" "WinampMPEG/5.56" 0
+84.82.12.240 - 2cf7e6b06335c0689c6d29163df5bb001c96870cd78609e3845f1ed76a632621 [03/Nov/2010:15:58:41 +0000] "GET /10122150/2010-10-31-0930.mp3?Signature=5n2%2B8hrDvgSbP6OJRP1vVav42uU%3D&Expires=1288807041&AWSAccessKeyId=AKIAI3XHXJPFSJW2UQAQ HTTP/1.1" 206 1273664 "-" "WinampMPEG/5.56" 0
+84.82.12.240 - 2cf7e6b06335c0689c6d29163df5bb001c96870cd78609e3845f1ed76a632621 [03/Nov/2010:15:58:44 +0000] "GET /10122150/2010-10-31-0930.mp3?Signature=5n2%2B8hrDvgSbP6OJRP1vVav42uU%3D&Expires=1288807041&AWSAccessKeyId=AKIAI3XHXJPFSJW2UQAQ HTTP/1.1" 206 783806 "-" "WinampMPEG/5.56" 0
+84.82.12.240 - 2cf7e6b06335c0689c6d29163df5bb001c96870cd78609e3845f1ed76a632621 [03/Nov/2010:15:58:48 +0000] "GET /10122150/2010-10-31-0930.mp3?Signature=5n2%2B8hrDvgSbP6OJRP1vVav42uU%3D&Expires=1288807041&AWSAccessKeyId=AKIAI3XHXJPFSJW2UQAQ HTTP/1.1" 206 3428645 "-" "WinampMPEG/5.56" 0
+84.82.12.240 - 2cf7e6b06335c0689c6d29163df5bb001c96870cd78609e3845f1ed76a632621 [03/Nov/2010:15:58:51 +0000] "GET /10122150/2010-10-31-0930.mp3?Signature=5n2%2B8hrDvgSbP6OJRP1vVav42uU%3D&Expires=1288807041&AWSAccessKeyId=AKIAI3XHXJPFSJW2UQAQ HTTP/1.1" 206 4232818 "-" "WinampMPEG/5.56" 4
+84.82.12.240 - 2cf7e6b06335c0689c6d29163df5bb001c96870cd78609e3845f1ed76a632621 [03/Nov/2010:15:58:55 +0000] "GET /10122150/2010-10-31-0930.mp3?Signature=5n2%2B8hrDvgSbP6OJRP1vVav42uU%3D&Expires=1288807041&AWSAccessKeyId=AKIAI3XHXJPFSJW2UQAQ HTTP/1.1" 206 4308854 "-" "WinampMPEG/5.56" 5
+84.82.12.240 - 2cf7e6b06335c0689c6d29163df5bb001c96870cd78609e3845f1ed76a632621 [03/Nov/2010:15:59:00 +0000] "GET /10122150/2010-10-31-0930.mp3?Signature=5n2%2B8hrDvgSbP6OJRP1vVav42uU%3D&Expires=1288807041&AWSAccessKeyId=AKIAI3XHXJPFSJW2UQAQ HTTP/1.1" 206 4238246 "-" "WinampMPEG/5.56" 6
+84.82.12.240 - 2cf7e6b06335c0689c6d29163df5bb001c96870cd78609e3845f1ed76a632621 [03/Nov/2010:15:59:06 +0000] "GET /10122150/2010-10-31-0930.mp3?Signature=5n2%2B8hrDvgSbP6OJRP1vVav42uU%3D&Expires=1288807041&AWSAccessKeyId=AKIAI3XHXJPFSJW2UQAQ HTTP/1.1" 206 4280986 "-" "WinampMPEG/5.56" 3
+84.82.12.240 - 2cf7e6b06335c0689c6d29163df5bb001c96870cd78609e3845f1ed76a632621 [03/Nov/2010:15:59:09 +0000] "GET /10122150/2010-10-31-0930.mp3?Signature=5n2%2B8hrDvgSbP6OJRP1vVav42uU%3D&Expires=1288807041&AWSAccessKeyId=AKIAI3XHXJPFSJW2UQAQ HTTP/1.1" 206 4205237 "-" "WinampMPEG/5.56" 11
+EOF_OUTPUT
+
+      output_log.string.should == expected_clf_log
+      winamp_log.close
     end
 
     it "should mark invalid lines with '# ERROR: '" do
@@ -350,19 +390,19 @@ EOF_OUTPUT
       $stderr.string.should eql("# ERROR: #{invalid_line}\n")
     end
     
-    it "should pass on reasonable 206 requests" do
-      $stderr = StringIO.new
-      reasonable_206_line = '2010-10-02-19-15-45-6879098C3140BE9D:2cf7e6b06335c0689c6d29163df5bb001c96870cd78609e3845f1ed76a632621 media.kerkdienstgemist.nl [02/Oct/2010:18:29:16 +0000] 82.168.113.55 2cf7e6b06335c0689c6d29163df5bb001c96870cd78609e3845f1ed76a632621 4F911681022807C6 REST.GET.OBJECT 10028050/2010-09-26-1830.mp3 "GET /10028050/2010-09-26-1830.mp3?Signature=E3ehd6nkXjNg7vr%2F4b3LtxCWads%3D&Expires=1286051333&AWSAccessKeyId=AKIAI3XHXJPFSJW2UQAQ HTTP/1.1" 206 - 4194304 17537676 500 12 "-" "VLC media player - version 1.0.5 Goldeneye - (c) 1996-2010 the VideoLAN team" -'
-      Ralf.translate_to_clf(reasonable_206_line).should eql("82.168.113.55 - 2cf7e6b06335c0689c6d29163df5bb001c96870cd78609e3845f1ed76a632621 [02/Oct/2010:18:29:16 +0000] \"GET /10028050/2010-09-26-1830.mp3?Signature=E3ehd6nkXjNg7vr%2F4b3LtxCWads%3D&Expires=1286051333&AWSAccessKeyId=AKIAI3XHXJPFSJW2UQAQ HTTP/1.1\" 206 4194304 \"-\" \"VLC media player - version 1.0.5 Goldeneye - (c) 1996-2010 the VideoLAN team\" 1")
-      $stderr.string.should be_empty
-    end
+    # it "should pass on reasonable 206 requests" do
+    #   $stderr = StringIO.new
+    #   reasonable_206_line = '2010-10-02-19-15-45-6879098C3140BE9D:2cf7e6b06335c0689c6d29163df5bb001c96870cd78609e3845f1ed76a632621 media.kerkdienstgemist.nl [02/Oct/2010:18:29:16 +0000] 82.168.113.55 2cf7e6b06335c0689c6d29163df5bb001c96870cd78609e3845f1ed76a632621 4F911681022807C6 REST.GET.OBJECT 10028050/2010-09-26-1830.mp3 "GET /10028050/2010-09-26-1830.mp3?Signature=E3ehd6nkXjNg7vr%2F4b3LtxCWads%3D&Expires=1286051333&AWSAccessKeyId=AKIAI3XHXJPFSJW2UQAQ HTTP/1.1" 206 - 4194304 17537676 500 12 "-" "VLC media player - version 1.0.5 Goldeneye - (c) 1996-2010 the VideoLAN team" -'
+    #   Ralf.translate_to_clf(reasonable_206_line).should eql("82.168.113.55 - 2cf7e6b06335c0689c6d29163df5bb001c96870cd78609e3845f1ed76a632621 [02/Oct/2010:18:29:16 +0000] \"GET /10028050/2010-09-26-1830.mp3?Signature=E3ehd6nkXjNg7vr%2F4b3LtxCWads%3D&Expires=1286051333&AWSAccessKeyId=AKIAI3XHXJPFSJW2UQAQ HTTP/1.1\" 206 4194304 \"-\" \"VLC media player - version 1.0.5 Goldeneye - (c) 1996-2010 the VideoLAN team\" 1")
+    #   $stderr.string.should be_empty
+    # end
 
-    it "should mark unreasonably short 206 requests as such and leave them out of the result" do
-      $stderr = StringIO.new
-      unreasonable_206_line = '2010-10-02-19-15-45-6879098C3140BE9D:2cf7e6b06335c0689c6d29163df5bb001c96870cd78609e3845f1ed76a632621 media.kerkdienstgemist.nl [02/Oct/2010:18:29:16 +0000] 82.168.113.55 2cf7e6b06335c0689c6d29163df5bb001c96870cd78609e3845f1ed76a632621 4F911681022807C6 REST.GET.OBJECT 10028050/2010-09-26-1830.mp3 "GET /10028050/2010-09-26-1830.mp3?Signature=E3ehd6nkXjNg7vr%2F4b3LtxCWads%3D&Expires=1286051333&AWSAccessKeyId=AKIAI3XHXJPFSJW2UQAQ HTTP/1.1" 206 - 4194304 17537676 66 12 "-" "VLC media player - version 1.0.5 Goldeneye - (c) 1996-2010 the VideoLAN team" -'
-      Ralf.translate_to_clf(unreasonable_206_line).should be_nil
-      $stderr.string.should eql("# ERROR: unreasonable 206: #{unreasonable_206_line}\n")
-    end
+    # it "should mark unreasonably short 206 requests as such and leave them out of the result" do
+    #   $stderr = StringIO.new
+    #   unreasonable_206_line = '2010-10-02-19-15-45-6879098C3140BE9D:2cf7e6b06335c0689c6d29163df5bb001c96870cd78609e3845f1ed76a632621 media.kerkdienstgemist.nl [02/Oct/2010:18:29:16 +0000] 82.168.113.55 2cf7e6b06335c0689c6d29163df5bb001c96870cd78609e3845f1ed76a632621 4F911681022807C6 REST.GET.OBJECT 10028050/2010-09-26-1830.mp3 "GET /10028050/2010-09-26-1830.mp3?Signature=E3ehd6nkXjNg7vr%2F4b3LtxCWads%3D&Expires=1286051333&AWSAccessKeyId=AKIAI3XHXJPFSJW2UQAQ HTTP/1.1" 206 - 4194304 17537676 66 12 "-" "VLC media player - version 1.0.5 Goldeneye - (c) 1996-2010 the VideoLAN team" -'
+    #   Ralf.translate_to_clf(unreasonable_206_line).should be_nil
+    #   $stderr.string.should eql("# ERROR: unreasonable 206: #{unreasonable_206_line}\n")
+    # end
 
     it "should add rounded total_time in seconds" do
       $stderr = StringIO.new
