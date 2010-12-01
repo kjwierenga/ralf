@@ -151,11 +151,11 @@ class Ralf
         $stderr.puts "# ERROR: unreasonable 206: #{line}"
         nil
       else
-        # host, date, ip, acl, request, status, bytes, agent = $2, $3, $4, $5, $9, $10, $12, $17
-        "%s - %s [%s] \"%s\" %d %s \"%s\" \"%s\"" % [$4, $5, $3, $9, $10, $12, $16, $17]
+        # host, date, ip, acl, request, status, bytes, agent, total_time_ms = $2, $3, $4, $5, $9, $10, $12, $17, $14
+        "%s - %s [%s] \"%s\" %s %s \"%s\" \"%s\" %d" % [$4, $5, $3, $9, $10, $12, $16, $17, ($14.to_i/1000.0).round]
       end
     elsif line =~ AMAZON_LOG_FORMAT_COPY
-      "%s - %s [%s] \"%s\" %d %s \"%s\" \"REST.COPY.OBJECT_GET\"" % [$4, $5, $3, "POST /#{$8} HTTP/1.1", $10, $12, $16]
+      "%s - %s [%s] \"%s\" %s %s \"%s\" \"REST.COPY.OBJECT_GET\" %d" % [$4, $5, $3, "POST /#{$8} HTTP/1.1", $10, $12, $16, 0]
     else
       $stderr.puts "# ERROR: #{line}"
       nil
