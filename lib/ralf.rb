@@ -1,7 +1,7 @@
 require 'rubygems'
 require 'right_aws'
 require 'logmerge'
-require 'ftools'
+require 'fileutils'
 require 'ralf/config'
 require 'ralf/bucket'
 require 'chronic'
@@ -84,7 +84,7 @@ class Ralf
       merged_log =  output_log + ".alf"
 
       # create directory for output file
-      File.makedirs(File.dirname(merged_log))
+      FileUtils.mkdir_p(File.dirname(merged_log))
 
       # merge the log files
       Ralf.merge(merged_log, log_files)
@@ -112,7 +112,7 @@ class Ralf
   
   # Download log files for +bucket+ and +date+ to +dir+.
   def self.download_logs(bucket, date, dir)
-    File.makedirs(dir)
+    FileUtils.mkdir_p(dir)
 
     # iterate over the available log files, saving them to disk and 
     log_files = []
