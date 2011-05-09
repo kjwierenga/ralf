@@ -123,4 +123,6 @@ install the ralf gem.
 = Authors
 Authors: {Leon Berenschot}[http://github.com/LeipeLeon] and {K.J. Wierenga}[http://github.com/kjwierenga]
 
+Contributers: {Victor Castell}[http://github.com/victorcoder]
+
 This program is used for {kerkdienstgemist.nl}[http://kerkdienstgemist.nl] {Amazon S3}[http://aws.amazon.com/s3/] log file processing.
