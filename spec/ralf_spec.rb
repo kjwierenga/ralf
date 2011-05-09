@@ -255,7 +255,7 @@ describe Ralf do
         @example_buckets[name]
       end
       
-      File.stub(:makedirs)
+      FileUtils.stub(:mkdir_p)
       ralf = Ralf.new(@valid_options.merge(:cache_dir   => '/var/log/s3/cache/:bucket',
                                            :output_file => '/var/log/s3/:bucket.log',
                                            :buckets     => 'test1',
