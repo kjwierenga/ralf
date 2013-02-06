@@ -342,20 +342,6 @@ EOF_OUTPUT
       output_log.string.should eql(clf_log)
     end
 
-    it "should mark invalid lines with '# ERROR: '" do
-      $stderr = StringIO.new
-      invalid_line = "this is an invalid log line"
-      Ralf.translate_to_clf(invalid_line)
-      $stderr.string.should eql("# ERROR: #{invalid_line}\n")
-    end
-
-    it "should add rounded total_time in seconds" do
-      $stderr = StringIO.new
-      input_line = '2010-10-02-19-15-45-6879098C3140BE9D:2cf7e6b06335c0689c6d29163df5bb001c96870cd78609e3845f1ed76a632621 media.kerkdienstgemist.nl [02/Oct/2010:18:29:16 +0000] 82.168.113.55 2cf7e6b06335c0689c6d29163df5bb001c96870cd78609e3845f1ed76a632621 4F911681022807C6 REST.GET.OBJECT 10028050/2010-09-26-1830.mp3 "GET /10028050/2010-09-26-1830.mp3?Signature=E3ehd6nkXjNg7vr%2F4b3LtxCWads%3D&Expires=1286051333&AWSAccessKeyId=AKIAI3XHXJPFSJW2UQAQ HTTP/1.1" 206 - 4194304 17537676 1600 12 "-" "VLC media player - version 1.0.5 Goldeneye - (c) 1996-2010 the VideoLAN team" -'
-      Ralf.translate_to_clf(input_line).should eql("82.168.113.55 - 2cf7e6b06335c0689c6d29163df5bb001c96870cd78609e3845f1ed76a632621 [02/Oct/2010:18:29:16 +0000] \"GET /10028050/2010-09-26-1830.mp3?Signature=E3ehd6nkXjNg7vr%2F4b3LtxCWads%3D&Expires=1286051333&AWSAccessKeyId=AKIAI3XHXJPFSJW2UQAQ HTTP/1.1\" 206 4194304 \"-\" \"VLC media player - version 1.0.5 Goldeneye - (c) 1996-2010 the VideoLAN team\" 2")
-      $stderr.string.should be_empty
-    end
-
   end
   
 end
