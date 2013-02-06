@@ -1,4 +1,6 @@
 require 'rubygems'
+require 'bundler/setup'
+
 require 'right_aws' # load RightHttpConnection before FakeWeb otherwise we get buggy
 require 'fakeweb'
 
