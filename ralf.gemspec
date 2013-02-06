@@ -1,8 +1,10 @@
 # -*- encoding: utf-8 -*-
+$:.push File.expand_path("../lib", __FILE__)
+require "ralf/version"
 
 Gem::Specification.new do |s|
   s.name = %q{ralf}
-  s.version = "1.1.0"
+  s.version = Ralf::VERSION
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.authors = ["Klaas Jan Wierenga", "Leon Berenschot"]
