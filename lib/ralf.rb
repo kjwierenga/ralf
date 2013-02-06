@@ -2,6 +2,8 @@ require 'rubygems'
 require 'right_aws'
 require 'logmerge'
 require 'fileutils'
+
+require 'ralf/version'
 require 'ralf/config'
 require 'ralf/bucket'
 require 'chronic'
