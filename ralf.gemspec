@@ -48,29 +48,15 @@ Gem::Specification.new do |s|
   s.rubygems_version = %q{1.3.7}
   s.summary = %q{Retrieve Amazon Log Files}
 
-  if s.respond_to? :specification_version then
-    current_version = Gem::Specification::CURRENT_SPECIFICATION_VERSION
-    s.specification_version = 3
+  s.rdoc_options       = ["--exclude", "."]
 
-    if Gem::Version.new(Gem::VERSION) >= Gem::Version.new('1.2.0') then
-      s.add_development_dependency(%q<rspec>, ["~> 1.3.0"])
-      s.add_development_dependency(%q<fakeweb>, ["~> 1.2.8"])
-      s.add_runtime_dependency(%q<right_aws>, ["~> 1.10.0"])
-      s.add_runtime_dependency(%q<logmerge>, ["~> 1.0.2"])
-      s.add_runtime_dependency(%q<chronic>, [">= 0.2.3"])
-    else
-      s.add_dependency(%q<rspec>, ["~> 1.3.0"])
-      s.add_dependency(%q<fakeweb>, ["~> 1.2.8"])
-      s.add_dependency(%q<right_aws>, ["~> 1.10.0"])
-      s.add_dependency(%q<logmerge>, ["~> 1.0.2"])
-      s.add_dependency(%q<chronic>, [">= 0.2.3"])
-    end
-  else
-    s.add_dependency(%q<rspec>, ["~> 1.3.0"])
-    s.add_dependency(%q<fakeweb>, ["~> 1.2.8"])
-    s.add_dependency(%q<right_aws>, ["~> 1.10.0"])
-    s.add_dependency(%q<logmerge>, ["~> 1.0.2"])
-    s.add_dependency(%q<chronic>, [">= 0.2.3"])
-  end
+  s.add_development_dependency "rspec", "~> 2"
+  s.add_development_dependency "autotest", '~> 4.4.6'
+  s.add_development_dependency "fakeweb", "~> 1.3.0"
+
+  s.add_runtime_dependency "right_aws", "~> 3.0.4"
+  s.add_runtime_dependency "logmerge",  "~> 1.0.3"
+  s.add_runtime_dependency "chronic",   "~> 0.9.0"
+
 end
 

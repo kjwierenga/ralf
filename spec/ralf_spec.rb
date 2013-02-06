@@ -52,14 +52,13 @@ describe Ralf do
       :cache_dir   => '/var/log/amazon/ralf_cache/:year/:month/:bucket',
     }.merge(@aws_credentials)
     
-    # File = mock('File')
-    @s3_mock = mock('s3_mock')
-    Ralf::Bucket.s3 = @s3_mock
-
-    @example_buckets = load_example_bucket_mocks
   end
 
   before(:each) do
+    @s3_mock = mock('s3_mock')
+    Ralf::Bucket.s3 = @s3_mock
+    @example_buckets = load_example_bucket_mocks
+
     RightAws::S3.should_receive(:new).any_number_of_times.and_return(@s3_mock)
   end
 
