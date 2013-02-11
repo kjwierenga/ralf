@@ -22,6 +22,7 @@ class Ralf::Config
     :cache_dir    # reader interpolates format
     
   attr_reader :errors
+  attr_reader :translate_options
   
   protected
   
@@ -40,6 +41,7 @@ class Ralf::Config
     @options[:now]       ||= nil
     @options[:range]     ||= 'today'
     @options[:cache_dir] ||= (0 == Process.uid ? ROOT_DEFAULT_CACHE_DIR : File.expand_path(USER_DEFAULT_CACHE_DIR))
+    @options[:translate_options] ||= {}
 
     assign_options(@options)
   end
@@ -102,6 +104,10 @@ class Ralf::Config
     @range = range
   end
   
+  def translate_options=(opts)
+    @translate_options = {:fix_partial_content => false}.merge(opts)
+  end
+
   def output_file(variables)
     Ralf::Interpolation.interpolate(@output_file, variables)
   end

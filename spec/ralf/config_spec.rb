@@ -128,4 +128,15 @@ describe Ralf::Config do
     $stdout.string.should eql("Warning: invalid configuration variable: unknown_variable\n")
   end
 
+  describe "#translate_options" do
+    it "sets {:fix_partial_content => false} by default" do
+      config = Ralf::Config.new
+      config.translate_options.should eql({:fix_partial_content => false})
+    end
+    it "sets {:fix_partial_content => true}" do
+      config = Ralf::Config.new(:translate_options => {:fix_partial_content => true})
+      config.translate_options.should eql({:fix_partial_content => true})
+    end
+  end
+
 end
