@@ -129,13 +129,13 @@ describe Ralf::Config do
   end
 
   describe "#translate_options" do
-    it "sets {:fix_partial_content => false} by default" do
+    it "sets {:recalculate_partial_content => false} by default" do
       config = Ralf::Config.new
-      config.translate_options.should eql({:fix_partial_content => false})
+      config.translate_options.should eql({:recalculate_partial_content => false})
     end
-    it "sets {:fix_partial_content => true}" do
-      config = Ralf::Config.new(:translate_options => {:fix_partial_content => true})
-      config.translate_options.should eql({:fix_partial_content => true})
+    it "sets {:recalculate_partial_content => true}" do
+      config = Ralf::Config.new(:translate_options => {:recalculate_partial_content => true})
+      config.translate_options.should eql({:recalculate_partial_content => true})
     end
   end
 

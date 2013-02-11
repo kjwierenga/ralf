@@ -105,7 +105,7 @@ class Ralf::Config
   end
   
   def translate_options=(opts)
-    @translate_options = {:fix_partial_content => false}.merge(opts)
+    @translate_options = {:recalculate_partial_content => false}.merge(opts)
   end
 
   def output_file(variables)

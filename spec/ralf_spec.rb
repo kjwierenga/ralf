@@ -282,7 +282,7 @@ describe Ralf do
       end
 
       Ralf.should_receive(:convert_to_common_log_format).with(
-        "/var/log/s3/test1.log.alf", "/var/log/s3/test1.log", {:fix_partial_content => false})
+        "/var/log/s3/test1.log.alf", "/var/log/s3/test1.log", {:recalculate_partial_content => false})
       
       LogMerge::Merger.should_receive(:merge).with(alfio,
         *@example_buckets['test1'].keys.map{|k| "/var/log/s3/cache/test1/#{k.name.gsub('logs/', '')}"})
@@ -349,7 +349,7 @@ EOF_OUTPUT
       File.should_receive(:open).with('output_file', 'w').and_return(output_log)
       File.should_receive(:open).with('input_file',  'r').and_yield(winamp_log)
 
-      Ralf.convert_to_common_log_format('input_file', 'output_file', {:fix_partial_content => true})
+      Ralf.convert_to_common_log_format('input_file', 'output_file', {:recalculate_partial_content => true})
 
       expected_clf_log =<<EOF_OUTPUT
 84.82.12.240 - 2cf7e6b063 [03/Nov/2010:15:57:29 +0000] "GET /10122150/2010-10-31-0930.mp3?Signature=5n2%2B8hrDvgSbP6OJRP1vVav42uU%3D&Expires=1288807041&AWSAccessKeyId=AKIAI3XHXJPFSJW2UQAQ HTTP/1.0" 200 4215272 "-" "WinampMPEG/5.56, Ultravox/2.1" 5
