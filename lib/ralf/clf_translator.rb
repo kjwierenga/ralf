@@ -5,8 +5,15 @@ class Ralf::ClfTranslator
 
   attr :line
   attr_reader :owner, :bucket, :timestamp, :remote_ip, :request_id, :operation, :key, :request_uri, :http_status, :s3_error_code, :bytes_sent, :object_size, :total_time_in_ms, :turn_around_time_in_ms, :referrer, :user_agent, :request_version_id, :duration
+  attr_reader :options
 
-  def initialize(line)
+  # options:
+  #   :recalculate_partial_content => false (default)
+  #     If request is '206 Partial Content' estimate the actual bytes when apparent bandwidth has exceeded 2Mbit/sec.
+  #     S3 caches content to edge servers with a burst which never reaches the client
+
+  def initialize(line, options = {})
+    @options = options
     @error = false
     @line = line
     @translate_successfull = translate
@@ -29,6 +36,10 @@ private
   def translate
     if line =~ AMAZON_LOG_FORMAT
       @owner, @bucket, @timestamp, @remote_ip, @requester, @request_id, @operation, @key, @request_uri, @http_status, @s3_error_code, @bytes_sent, @object_size, @total_time_in_ms, @turn_around_time_in_ms, @referrer, @user_agent, @request_version_id = $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18
+
+      if options[:recalculate_partial_content] && 206 == http_status.to_i && ((bytes_sent.to_i*8)/total_time_in_ms.to_i > 2000)
+        @bytes_sent = [ 128 * 1024 + 3 * total_time_in_ms.to_i, bytes_sent.to_i ].min # 128 K buffer + 3 bytes/msec = 3 kbytes/sec = 24 kbit/sec
+      end
       @duration = (total_time_in_ms.to_i/1000.0).round
 
     elsif line =~ AMAZON_LOG_COPY_FORMAT
