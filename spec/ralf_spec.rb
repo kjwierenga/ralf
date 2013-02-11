@@ -282,7 +282,7 @@ describe Ralf do
       end
 
       Ralf.should_receive(:convert_to_common_log_format).with(
-        "/var/log/s3/test1.log.alf", "/var/log/s3/test1.log")
+        "/var/log/s3/test1.log.alf", "/var/log/s3/test1.log", {:fix_partial_content => false})
       
       LogMerge::Merger.should_receive(:merge).with(alfio,
         *@example_buckets['test1'].keys.map{|k| "/var/log/s3/cache/test1/#{k.name.gsub('logs/', '')}"})
@@ -338,7 +338,7 @@ EOF_OUTPUT
       # $stderr.should_receive(:puts).with("# ERROR: 2cf7e6b06335c0689c6d29163df5bb001c96870cd78609e3845f1ed76a632621 media.staging.kerkdienstgemist.nl [17/Sep/2010:13:38:36 +0000] 85.113.244.146 2cf7e6b06335c0689c6d29163df5bb001c96870cd78609e3845f1ed76a632621 71F7D2AAA93B0A05 REST.COPY.OBJECT_GET 10010150/2010-08-29-0930.mp3 - 200 - - 13538337 - - - - -\n")
       # $stderr.should_receive(:puts).with("# ERROR: 2cf7e6b06335c0689c6d29163df5bb001c96870cd78609e3845f1ed76a632621 media.staging.kerkdienstgemist.nl [17/Sep/2010:13:38:37 +0000] 85.113.244.146 2cf7e6b06335c0689c6d29163df5bb001c96870cd78609e3845f1ed76a632621 7CC5E3D09AE78CAE REST.COPY.OBJECT_GET 10010150/2010-09-05-1000.mp3 - 200 - - 9860402 - - - - -\n")
 
-      Ralf.convert_to_common_log_format('input_file', 'output_file')
+      Ralf.convert_to_common_log_format('input_file', 'output_file', {})
       output_log.string.should eql(clf_log)
     end
 
@@ -349,7 +349,7 @@ EOF_OUTPUT
       File.should_receive(:open).with('output_file', 'w').and_return(output_log)
       File.should_receive(:open).with('input_file',  'r').and_yield(winamp_log)
 
-      Ralf.convert_to_common_log_format('input_file', 'output_file')
+      Ralf.convert_to_common_log_format('input_file', 'output_file', {:fix_partial_content => true})
 
       expected_clf_log =<<EOF_OUTPUT
 84.82.12.240 - 2cf7e6b063 [03/Nov/2010:15:57:29 +0000] "GET /10122150/2010-10-31-0930.mp3?Signature=5n2%2B8hrDvgSbP6OJRP1vVav42uU%3D&Expires=1288807041&AWSAccessKeyId=AKIAI3XHXJPFSJW2UQAQ HTTP/1.0" 200 4215272 "-" "WinampMPEG/5.56, Ultravox/2.1" 5

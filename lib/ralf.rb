@@ -90,7 +90,7 @@ class Ralf
       Ralf.merge(merged_log, log_files)
       
       # convert to common log format
-      Ralf.convert_to_common_log_format(merged_log, output_log)
+      Ralf.convert_to_common_log_format(merged_log, output_log, config.translate_options)
 
       puts "#{log_files.size} files" if config.debug?
     end
@@ -133,11 +133,11 @@ class Ralf
   end
 
   # Convert the input_log file to Apache Common Log Format into output_log
-  def self.convert_to_common_log_format(input_log, output_log)
+  def self.convert_to_common_log_format(input_log, output_log, options)
     out_file = File.open(output_log, 'w')
     File.open(input_log, 'r') do |in_file|
       while (line = in_file.gets)
-        if clf = Ralf::ClfTranslator.new(line).to_s
+        if clf = Ralf::ClfTranslator.new(line, options).to_s
           out_file.puts(clf)
         end
       end
