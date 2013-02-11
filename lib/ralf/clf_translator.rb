@@ -4,7 +4,7 @@ class Ralf::ClfTranslator
   AMAZON_LOG_COPY_FORMAT = Regexp.new('([^ ]*) ([^ ]*) \[([^\]]*)\] ([^ ]*) ([^ ]*) ([^ ]*) (REST.COPY.OBJECT_GET) ([^ ]*) (-) ([^ ]*) (-) (-) ([^ ]*) (-) (-) (-) (-) (-)')
 
   attr :line
-  attr_reader :owner, :bucket, :timestamp, :remote_ip, :requester, :request_id, :operation, :key, :request_uri, :http_status, :s3_error_code, :bytes_sent, :object_size, :total_time_in_ms, :turn_around_time_in_ms, :referrer, :user_agent, :request_version_id, :duration
+  attr_reader :owner, :bucket, :timestamp, :remote_ip, :request_id, :operation, :key, :request_uri, :http_status, :s3_error_code, :bytes_sent, :object_size, :total_time_in_ms, :turn_around_time_in_ms, :referrer, :user_agent, :request_version_id, :duration
 
   def initialize(line)
     @error = false
@@ -21,6 +21,10 @@ class Ralf::ClfTranslator
   end
 
 private
+
+  def requester
+    @requester[0..9]
+  end
 
   def translate
     if line =~ AMAZON_LOG_FORMAT
