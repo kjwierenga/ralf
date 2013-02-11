@@ -1,14 +1,11 @@
 require 'rubygems'
+require 'bundler/setup'
+
 require 'right_aws' # load RightHttpConnection before FakeWeb otherwise we get buggy
 require 'fakeweb'
 
-require 'spec/autorun'
+RSpec.configure do |config|
 
-Spec::Runner.configure do |config|
-  # == Notes
-  #
-  # For more information take a look at Spec::Runner::Configuration and Spec::Runner
-  
   def load_example_bucket_mocks
     buckets = YAML.load(File.open(File.join(File.dirname(__FILE__), 'fixtures', 'example_buckets.yaml')))
     buckets = buckets.inject({}) do |memo, info|
@@ -20,5 +17,5 @@ Spec::Runner.configure do |config|
     end
     buckets
   end
-end
 
+end

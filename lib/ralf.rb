@@ -2,8 +2,11 @@ require 'rubygems'
 require 'right_aws'
 require 'logmerge'
 require 'fileutils'
+
+require 'ralf/version'
 require 'ralf/config'
 require 'ralf/bucket'
+require 'ralf/clf_translator'
 require 'chronic'
 require 'stringio'
 require 'date'
@@ -18,9 +21,6 @@ class Ralf
   ROOT_DEFAULT_CONFIG_FILE = '/etc/ralf.conf'
   USER_DEFAULT_CONFIG_FILE = '~/.ralf.conf'
 
-  AMAZON_LOG_FORMAT = Regexp.new('([^ ]*) ([^ ]*) \[([^\]]*)\] ([^ ]*) ([^ ]*) ([^ ]*) ([^ ]*) ([^ ]*) "([^"]*)" ([^ ]*) ([^ ]*) ([^ ]*) ([^ ]*) ([^ ]*) ([^ ]*) "([^"]*)" "([^"]*)"')
-  AMAZON_LOG_FORMAT_COPY = Regexp.new('([^ ]*) ([^ ]*) \[([^\]]*)\] ([^ ]*) ([^ ]*) ([^ ]*) (REST.COPY.OBJECT_GET) ([^ ]*) (-) ([^ ]*) (-) (-) ([^ ]*) (-) (-) (-) (-) (-)')
-  
   # The current configuration.
   attr_reader :config
   
@@ -90,7 +90,7 @@ class Ralf
       Ralf.merge(merged_log, log_files)
       
       # convert to common log format
-      Ralf.convert_to_common_log_format(merged_log, output_log)
+      Ralf.convert_to_common_log_format(merged_log, output_log, config.translate_options)
 
       puts "#{log_files.size} files" if config.debug?
     end
@@ -133,28 +133,16 @@ class Ralf
   end
 
   # Convert the input_log file to Apache Common Log Format into output_log
-  def self.convert_to_common_log_format(input_log, output_log)
+  def self.convert_to_common_log_format(input_log, output_log, options)
     out_file = File.open(output_log, 'w')
     File.open(input_log, 'r') do |in_file|
       while (line = in_file.gets)
-        if clf = translate_to_clf(line)
+        if clf = Ralf::ClfTranslator.new(line, options).to_s
           out_file.puts(clf)
         end
       end
     end
     out_file.close
-  end
-
-  def self.translate_to_clf(line)
-    if line =~ AMAZON_LOG_FORMAT
-      # host, date, ip, acl, request, status, bytes, agent, total_time_ms = $2, $3, $4, $5, $9, $10, $12, $17, $14
-      "%s - %s [%s] \"%s\" %s %s \"%s\" \"%s\" %d" % [$4, $5, $3, $9, $10, $12, $16, $17, ($14.to_i/1000.0).round]
-    elsif line =~ AMAZON_LOG_FORMAT_COPY
-      "%s - %s [%s] \"%s\" %s %s \"%s\" \"REST.COPY.OBJECT_GET\" %d" % [$4, $5, $3, "POST /#{$8} HTTP/1.1", $10, $12, $16, 0]
-    else
-      $stderr.puts "# ERROR: #{line}"
-      nil
-    end
   end
 
   def load_config(cli_config_file)
