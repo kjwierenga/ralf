@@ -12,6 +12,15 @@ class Ralf
   attr_reader :config
   attr_reader :s3
 
+  # required parameters:
+  #  :cache_dir  => './cache',
+  #  :output_dir => './logs/:year/:month/:day',
+  #  :range_size => 5,   # proces N days
+  #  :range_shift => 2,  # ignore N days
+  #  :aws_key    => '--AWS_KEY--',
+  #  :aws_secret => '--AWS_SECTRET--',
+  #  :log_buckets => ["logbucket1", "logbucket2"],
+  #  :log_prefix => 'logs/'
   def read_config(file)
     @config = symbolize_keys(YAML::load(File.open(file)))
   end
