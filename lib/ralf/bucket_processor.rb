@@ -11,19 +11,20 @@ class Ralf::BucketProcessor
   end
 
   def process
-    merge(collected_files.flatten)
+    file_names_to_process = process_keys_for_range.flatten
+    all_loglines = merge(file_names_to_process)
   end
 
-  def collected_files
-    ((Date.today-config[:range_size])..Date.today).to_a.each { |date| process_keys_for_date(date)}
+  def process_keys_for_range
+    (start_day..Date.today).to_a.each { |date| process_keys_for_date(date)}
   end
 
   def process_keys_for_date(date)
     keys = bucket.keys('prefix' => prefix(date))
-    keys.collect { |key| download(key) }
+    keys.collect { |key| download_key(key) }
   end
 
-  def download(key)
+  def download_key(key)
     file_name = File.join(config[:cache_dir], key.name.gsub(config[:log_prefix], ''))
     unless File.exist?(file_name)
       File.open(file_name, 'w') { |f| f.write(key.data) }
@@ -44,6 +45,10 @@ class Ralf::BucketProcessor
   end
 
 private
+
+  def start_day
+    Date.today-config[:range_size]
+  end
 
   def prefix(date)
     "%s%s" % [config[:log_prefix], date]
