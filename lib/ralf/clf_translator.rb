@@ -1,11 +1,10 @@
-# TODO convert timestamp to UTC
 class Ralf::ClfTranslator
 
   AMAZON_LOG_FORMAT =      Regexp.new('([^ ]*) ([^ ]*) \[([^\]]*)\] ([^ ]*) ([^ ]*) ([^ ]*) ([^ ]*) ([^ ]*) "([^"]*)" ([^ ]*) ([^ ]*) ([^ ]*) ([^ ]*) ([^ ]*) ([^ ]*) "([^"]*)" "([^"]*)"')
   AMAZON_LOG_COPY_FORMAT = Regexp.new('([^ ]*) ([^ ]*) \[([^\]]*)\] ([^ ]*) ([^ ]*) ([^ ]*) (REST.COPY.OBJECT_GET) ([^ ]*) (-) ([^ ]*) (-) (-) ([^ ]*) (-) (-) (-) (-) (-)')
 
   attr :line
-  attr_reader :owner, :bucket, :timestamp, :remote_ip, :request_id, :operation, :key, :request_uri, :http_status, :s3_error_code, :bytes_sent, :object_size, :total_time_in_ms, :turn_around_time_in_ms, :referrer, :user_agent, :request_version_id, :duration
+  attr_reader :owner, :bucket, :remote_ip, :request_id, :operation, :key, :request_uri, :http_status, :s3_error_code, :bytes_sent, :object_size, :total_time_in_ms, :turn_around_time_in_ms, :referrer, :user_agent, :request_version_id, :duration
   attr_reader :options
 
   # options:
@@ -18,6 +17,10 @@ class Ralf::ClfTranslator
     @error = false
     @line = line
     @translate_successfull = translate
+  end
+  
+  def timestamp
+    Ralf::ClfTime.parse(@timestamp)
   end
 
   def to_s

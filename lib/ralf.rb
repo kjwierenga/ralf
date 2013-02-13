@@ -2,6 +2,7 @@ require "ralf/version"
 require 'ralf/interpolation'
 require "ralf/bucket_processor"
 require "ralf/clf_translator"
+require "ralf/clf_time"
 require 'right_aws'
 require 'yaml'
 
