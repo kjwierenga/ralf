@@ -19,7 +19,7 @@ class Ralf
   def validate_config
     raise InvalidConfig.new("No config set") if config.nil?
     errors = []
-    [:cache_dir, :output_dir, :range_size, :aws_key, :aws_secret, :log_buckets, :log_prefix].each do |c|
+    [:cache_dir, :output_dir, :range_size, :range_shift, :aws_key, :aws_secret, :log_buckets, :log_prefix].each do |c|
       errors << c if config[c].nil?
     end
     errors << "Cache dir does not exixst" if config[:cache_dir] && ! File.exist?(config[:cache_dir])

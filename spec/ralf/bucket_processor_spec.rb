@@ -10,6 +10,7 @@ describe Ralf::BucketProcessor do
       :output_dir => './logs/:year/:month/:day/:bucket.log',
       :log_prefix => 'logs/',
       :range_size => 2,
+      :range_shift => 1,
       :recalculate_partial_content => true
     })
   end
@@ -94,7 +95,7 @@ describe Ralf::BucketProcessor do
           12 => open_file_12,
           13 => open_file_13
         }}})
-        open_file_11.should_receive(:puts).and_return(true)
+        open_file_11.should_not_receive(:puts).and_return(true)
         open_file_12.should_receive(:puts).twice.and_return(true)
         open_file_13.should_receive(:puts).and_return(true)
 

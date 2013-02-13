@@ -48,11 +48,12 @@ class Ralf::BucketProcessor
 
   def write_to_combined(all_loglines)
     range = extract_range(all_loglines)
+    range.shift(config[:range_shift]) # remove N items from range
     ensure_output_directories(range)
     open_file_descriptors(range)
     
     all_loglines.each do |line|
-      open_files[line.timestamp.year][line.timestamp.month][line.timestamp.day].puts line
+      open_files[line.timestamp.year][line.timestamp.month][line.timestamp.day].puts line if range.include? Date.parse(line.timestamp.strftime("%Y/%m/%d"))
     end
   ensure
     close_file_descriptors
