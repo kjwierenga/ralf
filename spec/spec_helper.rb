@@ -5,17 +5,8 @@ require 'right_aws' # load RightHttpConnection before FakeWeb otherwise we get b
 require 'fakeweb'
 
 RSpec.configure do |config|
-
-  def load_example_bucket_mocks
-    buckets = YAML.load(File.open(File.join(File.dirname(__FILE__), 'fixtures', 'example_buckets.yaml')))
-    buckets = buckets.inject({}) do |memo, info|
-      info[:keys].map! do |key|
-        mock(key[:name], key)
-      end
-      memo.merge!(info[:name] => mock(info[:name], info))
-      memo
-    end
-    buckets
-  end
-
+  config.treat_symbols_as_metadata_keys_with_true_values = true
+  config.run_all_when_everything_filtered = true
+  config.filter_run :focus
+  config.order = 'random'
 end

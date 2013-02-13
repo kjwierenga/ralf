@@ -1,3 +1,4 @@
+# TODO convert timestamp to UTC
 class Ralf::ClfTranslator
 
   AMAZON_LOG_FORMAT =      Regexp.new('([^ ]*) ([^ ]*) \[([^\]]*)\] ([^ ]*) ([^ ]*) ([^ ]*) ([^ ]*) ([^ ]*) "([^"]*)" ([^ ]*) ([^ ]*) ([^ ]*) ([^ ]*) ([^ ]*) ([^ ]*) "([^"]*)" "([^"]*)"')

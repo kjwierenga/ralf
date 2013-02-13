@@ -1,3 +1,3 @@
-class Ralf #:nodoc:
-  VERSION = "1.1.1"
+class Ralf
+  VERSION = "2.0.0"
 end

@@ -1,7 +1,6 @@
 require 'spec_helper'
 
 require 'ralf'
-require 'ralf/bucket'
 
 describe Ralf::ClfTranslator do
 
