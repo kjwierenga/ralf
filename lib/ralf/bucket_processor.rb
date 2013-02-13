@@ -1,11 +1,4 @@
 
-# √ sync the logfiles form the last N days onto the local filesystem
-# √ load every logfile in memory and merge it in a hashtable
-#   remove ignore lines
-# √ sort it by timestamp
-# save and optionally split it in a directory (ex. :year/:month/:day) as given in the options
-# merge the last N days into combined ordered logs
-
 class Ralf::BucketProcessor
 
   attr_reader :config
