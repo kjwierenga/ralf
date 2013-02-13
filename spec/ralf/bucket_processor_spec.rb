@@ -4,10 +4,10 @@ require 'ralf'
 describe Ralf::BucketProcessor do
 
   before do
-    @s3_bucket_mock = mock(RightAws::S3::Bucket)
+    @s3_bucket_mock = mock(RightAws::S3::Bucket, :name => "logfilebucket")
     @ralf = mock(Ralf, :config => {
       :cache_dir  => './cache',
-      :output_dir => './logs/:year/:month/:day',
+      :output_dir => './logs/:year/:month/:day/:bucket.log',
       :log_prefix => 'logs/',
       :range_size => 2,
       :recalculate_partial_content => true
@@ -67,20 +67,65 @@ describe Ralf::BucketProcessor do
           'spec/fixtures/2012-06-04-17-15-58-41BB059FD94A4EC7',
           'spec/fixtures/2012-06-04-17-16-40-4E34CC5FF2B57639'
         ]).collect {|l| l.timestamp.to_s}.should eql([
-          "Mon Jun 04 14:34:26 UTC 2012",
-          "Mon Jun 04 14:34:26 UTC 2012",
+          "Sun Jun 03 14:34:26 UTC 2012",
+          "Sun Jun 03 14:34:26 UTC 2012",
           "Mon Jun 04 14:34:28 UTC 2012",
-          "Mon Jun 04 14:35:41 UTC 2012",
-          "Mon Jun 04 14:36:31 UTC 2012",
           "Mon Jun 04 14:44:26 UTC 2012",
           "Mon Jun 04 14:44:26 UTC 2012",
           "Mon Jun 04 14:45:41 UTC 2012",
           "Mon Jun 04 14:46:31 UTC 2012",
-          "Mon Jun 04 14:46:31 UTC 2012"
+          "Mon Jun 04 14:46:31 UTC 2012",
+          "Tue Jun 05 14:35:41 UTC 2012",
+          "Tue Jun 05 14:36:31 UTC 2012",
         ])
       end
     end
+    describe "#write_to_combined" do
+      it "writes to combined files in the subirectories" do
+        subject.stub(:ensure_output_directories).and_return(true)
+        subject.stub(:open_file_descriptors).and_return(true)
+        subject.stub(:close_file_descriptors).and_return(true)
 
+        open_file_11 = StringIO.new
+        open_file_12 = StringIO.new
+        open_file_13 = StringIO.new
+        subject.stub(:open_files).and_return({2013 => {2 =>{
+          11 => open_file_11,
+          12 => open_file_12,
+          13 => open_file_13
+        }}})
+        open_file_11.should_receive(:puts).and_return(true)
+        open_file_12.should_receive(:puts).twice.and_return(true)
+        open_file_13.should_receive(:puts).and_return(true)
+
+        subject.write_to_combined([
+          mock(Ralf::ClfTranslator, :timestamp => Time.mktime(2013, 2, 11, 16, 34, 26, '+0000').utc),
+          mock(Ralf::ClfTranslator, :timestamp => Time.mktime(2013, 2, 12, 16, 34, 26, '+0000').utc+10),
+          mock(Ralf::ClfTranslator, :timestamp => Time.mktime(2013, 2, 12, 16, 34, 26, '+0000').utc+15),
+          mock(Ralf::ClfTranslator, :timestamp => Time.mktime(2013, 2, 13, 16, 34, 26, '+0000').utc+23)
+        ])
+      end
+    end
+    describe "#ensure_output_directories" do
+      it "ensures that base dir exists" do
+        FileUtils.should_receive(:mkdir_p).with('./logs/2013/02/13')
+        subject.ensure_output_directories([Date.new(2013, 2, 13)])
+      end
+    end
+    describe "#open_file_descriptors" do
+      it "opens filedescriptors" do
+        File.should_receive(:open).with('./logs/2013/02/13/logfilebucket.log')
+        subject.open_file_descriptors([Date.new(2013, 2, 13)])
+      end
+    end
+    describe "#close_file_descriptors" do
+      it "closes filedescriptors" do
+        open_file = StringIO.new
+        subject.stub(:open_files).and_return({2013 => {2 =>{13 => open_file}}})
+        open_file.should_receive(:close).and_return(true)
+        subject.close_file_descriptors
+      end
+    end
   end
 end
 
