@@ -18,7 +18,7 @@ class Ralf::BucketProcessor
   end
 
   def process_keys_for_range
-    (start_day..Date.today).to_a.each { |date| process_keys_for_date(date)}
+    date_range.to_a.collect { |date| process_keys_for_date(date)}
   end
 
   def process_keys_for_date(date)
@@ -91,6 +91,10 @@ class Ralf::BucketProcessor
   end
 
 private
+
+  def date_range
+    (start_day..Date.today)
+  end
 
   def extract_range_from_collection(all_loglines)
     (Date.parse(all_loglines.first.timestamp.strftime("%Y/%m/%d"))..Date.parse(all_loglines.last.timestamp.strftime("%Y/%m/%d"))).to_a
