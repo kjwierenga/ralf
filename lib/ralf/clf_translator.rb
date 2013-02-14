@@ -23,9 +23,13 @@ class Ralf::ClfTranslator
     Ralf::ClfTime.parse(@timestamp)
   end
 
+  def formatted_timestamp
+    timestamp.strftime("%d/%b/%Y:%H:%M:%S %z")
+  end
+
   def to_s
     if @translate_successfull
-      "%s - %s [%s] \"%s\" %s %s \"%s\" \"%s\" %d" % [remote_ip, requester, timestamp, request_uri, http_status, bytes_sent, referrer, user_agent, duration]
+      "%s - %s [%s] \"%s\" %s %s \"%s\" \"%s\" %d" % [remote_ip, requester, formatted_timestamp, request_uri, http_status, bytes_sent, referrer, user_agent, duration]
     else
       nil
     end
