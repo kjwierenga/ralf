@@ -6,8 +6,8 @@ describe Ralf::BucketProcessor do
   before do
     @s3_bucket_mock = mock(RightAws::S3::Bucket, :name => "logfilebucket")
     @ralf = mock(Ralf, :config => {
-      :cache_dir  => './cache',
-      :output_dir => './logs/:year/:month/:day/:bucket.log',
+      :cache_dir  => './logs/cache/:bucket',
+      :output_dir => './logs/:bucket/:year/:month/:day.log',
       :log_prefix => 'logs/',
       :days_to_look_back => 3,
       :days_to_ignore => 1,
@@ -53,7 +53,7 @@ describe Ralf::BucketProcessor do
       end
       it "downloads key if it does not exists" do
         File.should_receive(:exist?).and_return(false)
-        File.should_receive(:open).with("./cache/2013-02-11-00-05-23-UYVJCTKCTGFRDZ", "w").and_yield(mock(File, :write => true))
+        File.should_receive(:open).with("./logs/cache/logfilebucket/2013-02-11-00-05-23-UYVJCTKCTGFRDZ", "w").and_yield(mock(File, :write => true))
         subject.download_key(@key_mock1)
       end
       it "skip download for key if it already exists in cache" do
@@ -107,13 +107,13 @@ describe Ralf::BucketProcessor do
     end
     describe "#ensure_output_directories" do
       it "ensures that base dir exists" do
-        FileUtils.should_receive(:mkdir_p).with('./logs/2013/02/13')
+        FileUtils.should_receive(:mkdir_p).with('./logs/logfilebucket/2013/02')
         subject.ensure_output_directories([Date.new(2013, 2, 13)])
       end
     end
     describe "#open_file_descriptors" do
       it "opens filedescriptors" do
-        File.should_receive(:open).with('./logs/2013/02/13/logfilebucket.log')
+        File.should_receive(:open).with('./logs/logfilebucket/2013/02/13.log', 'w')
         subject.open_file_descriptors([Date.new(2013, 2, 13)])
       end
     end
@@ -123,6 +123,12 @@ describe Ralf::BucketProcessor do
         subject.stub(:open_files).and_return({2013 => {2 =>{13 => open_file}}})
         open_file.should_receive(:close).and_return(true)
         subject.close_file_descriptors
+      end
+    end
+    describe "#cache_dir" do
+      it "interpolates the cache_dir" do
+        subject.should_receive(:config).and_return({:cache_dir => 'cache/:bucket'})
+        subject.cache_dir.should eql('cache/logfilebucket')
       end
     end
   end

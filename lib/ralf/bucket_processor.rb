@@ -33,7 +33,7 @@ class Ralf::BucketProcessor
   end
 
   def download_key(key)
-    file_name = File.join(config[:cache_dir], key.name.gsub(config[:log_prefix], ''))
+    file_name = File.join(cache_dir, key.name.gsub(config[:log_prefix], ''))
     unless File.exist?(file_name)
       File.open(file_name, 'w') { |f| f.write(key.data) }
     end
@@ -94,6 +94,10 @@ class Ralf::BucketProcessor
         FileUtils.mkdir_p(base_dir)
       end
     end
+  end
+
+  def cache_dir
+    Ralf::Interpolation.interpolate(config[:cache_dir], {:bucket => bucket.name}, [:bucket])
   end
 
 private
