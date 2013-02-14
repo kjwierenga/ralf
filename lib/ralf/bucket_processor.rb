@@ -47,8 +47,8 @@ class Ralf::BucketProcessor
   end
 
   def write_to_combined(all_loglines)
-    range = extract_range(all_loglines)
-    range.shift(config[:range_shift]) # remove N items from range
+    range = extract_range_from_collection(all_loglines)
+    range.shift(config[:days_to_ignore]) # remove N items from range
     ensure_output_directories(range)
     open_file_descriptors(range)
     
@@ -96,7 +96,7 @@ private
   end
 
   def start_day
-    Date.today-config[:range_size]
+    Date.today-(config[:days_to_look_back]-1)
   end
 
   def prefix(date)

@@ -26,14 +26,14 @@ describe Ralf do
       subject.stub(:config).and_return({})
       lambda {
         subject.validate_config
-      }.should raise_error(Ralf::InvalidConfig, "Required options: 'cache_dir', 'output_dir', 'range_size', 'range_shift', 'aws_key', 'aws_secret', 'log_buckets', 'log_prefix'")
+      }.should raise_error(Ralf::InvalidConfig, "Required options: 'cache_dir', 'output_dir', 'days_to_look_back', 'days_to_ignore', 'aws_key', 'aws_secret', 'log_buckets', 'log_prefix'")
     end
     it "does not raise errors when minimal required options are set" do
       subject.stub(:config).and_return({
         :cache_dir  => './cache',
         :output_dir => './logs/:year/:month/:day',
-        :range_size => 5,
-        :range_shift => 2,
+        :days_to_look_back => 5,
+        :days_to_ignore => 2,
         :aws_key    => '--AWS_KEY--',
         :aws_secret => '--AWS_SECTRET--',
         :log_buckets => ["logbucket1", "logbucket2"],
@@ -48,8 +48,8 @@ describe Ralf do
       subject.stub(:config).and_return({
         :cache_dir  => './cache',
         :output_dir => './logs/:year/:month/:day',
-        :range_size => 5,
-        :range_shift => 2,
+        :days_to_look_back => 5,
+        :days_to_ignore => 2,
         :aws_key    => '--AWS_KEY--',
         :aws_secret => '--AWS_SECTRET--',
         :log_buckets => ["logbucket1", "logbucket2"],

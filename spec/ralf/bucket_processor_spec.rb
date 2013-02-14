@@ -9,8 +9,8 @@ describe Ralf::BucketProcessor do
       :cache_dir  => './cache',
       :output_dir => './logs/:year/:month/:day/:bucket.log',
       :log_prefix => 'logs/',
-      :range_size => 2,
-      :range_shift => 1,
+      :days_to_look_back => 3,
+      :days_to_ignore => 1,
       :recalculate_partial_content => true
     })
   end
