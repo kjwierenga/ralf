@@ -91,11 +91,9 @@ describe Ralf::BucketProcessor do
         open_file_12 = StringIO.new
         open_file_13 = StringIO.new
         subject.stub(:open_files).and_return({2013 => {2 =>{
-          11 => open_file_11,
           12 => open_file_12,
           13 => open_file_13
         }}})
-        open_file_11.should_not_receive(:puts).and_return(true)
         open_file_12.should_receive(:puts).twice.and_return(true)
         open_file_13.should_receive(:puts).and_return(true)
 

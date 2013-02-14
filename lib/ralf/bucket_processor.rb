@@ -51,10 +51,11 @@ class Ralf::BucketProcessor
     range.shift(config[:days_to_ignore]) # remove N items from range
     ensure_output_directories(range)
     open_file_descriptors(range)
-    
+
     all_loglines.each do |line|
-      open_files[line.timestamp.year][line.timestamp.month][line.timestamp.day].puts line if range.include? Date.parse(line.timestamp.strftime("%Y/%m/%d"))
+      open_files[line.timestamp.year][line.timestamp.month][line.timestamp.day].puts line if open_files[line.timestamp.year][line.timestamp.month][line.timestamp.day]
     end
+
   ensure
     close_file_descriptors
   end
