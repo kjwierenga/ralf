@@ -1,3 +1,4 @@
+require 'fileutils'
 
 class Ralf::BucketProcessor
 
@@ -12,9 +13,14 @@ class Ralf::BucketProcessor
   end
 
   def process
-    file_names_to_process = process_keys_for_range.flatten
+    file_names_to_process = ignore_days(process_keys_for_range).flatten
     all_loglines = merge(file_names_to_process)
     write_to_combined(all_loglines)
+  end
+
+  def ignore_days(processed_keys_for_range)
+    processed_keys_for_range.shift(config[:days_to_ignore]) # remove N items from range
+    processed_keys_for_range
   end
 
   def process_keys_for_range
@@ -35,25 +41,25 @@ class Ralf::BucketProcessor
   end
 
   def merge(file_names)
+    lines = []
     file_names.collect do |file_name|
-      lines = []
       File.open(file_name) do |in_file|
         while (line = in_file.gets)
-          lines << Ralf::ClfTranslator.new(line, config)
+          translated = Ralf::ClfTranslator.new(line, config)
+          lines << {:timestamp => translated.timestamp, :string => translated.to_s}
         end
       end
-      lines
-    end.flatten.sort! { |a,b| a.timestamp <=> b.timestamp }
+    end
+    lines.sort! { |a,b| a[:timestamp] <=> b[:timestamp] }
   end
 
   def write_to_combined(all_loglines)
     range = extract_range_from_collection(all_loglines)
-    range.shift(config[:days_to_ignore]) # remove N items from range
     ensure_output_directories(range)
     open_file_descriptors(range)
 
     all_loglines.each do |line|
-      open_files[line.timestamp.year][line.timestamp.month][line.timestamp.day].puts line if open_files[line.timestamp.year][line.timestamp.month][line.timestamp.day]
+      open_files[line[:timestamp].year][line[:timestamp].month][line[:timestamp].day].puts line[:string] if open_files[line[:timestamp].year][line[:timestamp].month][line[:timestamp].day]
     end
 
   ensure
@@ -66,7 +72,7 @@ class Ralf::BucketProcessor
       output_filename = Ralf::Interpolation.interpolate(config[:output_dir], {:bucket => bucket.name, :date => date}, [:bucket])
       @open_files[date.year] ||= {}
       @open_files[date.year][date.month] ||= {}
-      @open_files[date.year][date.month][date.day] = File.open(output_filename)
+      @open_files[date.year][date.month][date.day] = File.open(output_filename, 'w')
     end
   end
 
@@ -97,7 +103,7 @@ private
   end
 
   def extract_range_from_collection(all_loglines)
-    (Date.parse(all_loglines.first.timestamp.strftime("%Y/%m/%d"))..Date.parse(all_loglines.last.timestamp.strftime("%Y/%m/%d"))).to_a
+    (Date.parse(all_loglines.first[:timestamp].strftime("%Y/%m/%d"))..Date.parse(all_loglines.last[:timestamp].strftime("%Y/%m/%d"))).to_a
   end
 
   def start_day

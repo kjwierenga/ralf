@@ -67,7 +67,7 @@ describe Ralf::BucketProcessor do
         subject.merge([
           'spec/fixtures/2012-06-04-17-15-58-41BB059FD94A4EC7',
           'spec/fixtures/2012-06-04-17-16-40-4E34CC5FF2B57639'
-        ]).collect {|l| l.timestamp.to_s}.should eql([
+        ]).collect {|l| l[:timestamp].to_s}.should eql([
           "2012-06-03T16:34:26+00:00",
           "2012-06-03T16:34:26+00:00",
           "2012-06-04T16:34:28+00:00",
@@ -98,10 +98,10 @@ describe Ralf::BucketProcessor do
         open_file_13.should_receive(:puts).and_return(true)
 
         subject.write_to_combined([
-          mock(Ralf::ClfTranslator, :timestamp => Time.mktime(2013, 2, 11, 16, 34, 26, '+0000').utc),
-          mock(Ralf::ClfTranslator, :timestamp => Time.mktime(2013, 2, 12, 16, 34, 26, '+0000').utc+10),
-          mock(Ralf::ClfTranslator, :timestamp => Time.mktime(2013, 2, 12, 16, 34, 26, '+0000').utc+15),
-          mock(Ralf::ClfTranslator, :timestamp => Time.mktime(2013, 2, 13, 16, 34, 26, '+0000').utc+23)
+          {:timestamp => Time.mktime(2013, 2, 11, 16, 34, 26, '+0000').utc   , :string => 'logfile_string'},
+          {:timestamp => Time.mktime(2013, 2, 12, 16, 34, 26, '+0000').utc+10, :string => 'logfile_string'},
+          {:timestamp => Time.mktime(2013, 2, 12, 16, 34, 26, '+0000').utc+15, :string => 'logfile_string'},
+          {:timestamp => Time.mktime(2013, 2, 13, 16, 34, 26, '+0000').utc+23, :string => 'logfile_string'}
         ])
       end
     end
