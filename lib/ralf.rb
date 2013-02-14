@@ -21,8 +21,13 @@ class Ralf
   #  :aws_secret => '--AWS_SECTRET--',
   #  :log_bucket => "logbucket1",
   #  :log_prefix => 'logs/'
-  def read_config(file)
-    @config = symbolize_keys(YAML::load(File.open(file)))
+  def config=(hash)
+    @config = symbolize_keys(hash)
+    validate_config
+  end
+
+  def read_config_from_file(file)
+    self.config = YAML::load(File.open(file))
   end
 
   def validate_config

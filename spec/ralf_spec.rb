@@ -3,19 +3,26 @@ require 'ralf'
 
 describe Ralf do
 
-  describe "#read_config" do
+  describe "#read_config_from_file" do
     before do
       File.should_receive(:open).with('./ralf.conf').and_return(StringIO.new('option: value'))
+      subject.should_receive(:validate_config).and_return(true)
     end
     it "reads the config" do
-      subject.read_config('./ralf.conf').should be_true
+      subject.read_config_from_file('./ralf.conf').should be_true
     end
-    it "sets the @config with symbolized keys" do
-      subject.read_config('./ralf.conf').should be_true
+    it "sets the config" do
+      subject.read_config_from_file('./ralf.conf')
       subject.config.should eql({:option => "value"})
     end
   end
-
+  describe "#config=" do
+    it "symbolizes the keys and validates the options"  do
+      subject.should_receive(:validate_config)
+      subject.config = {"option" => "value"}
+      subject.config.should eql({:option => "value"})
+    end
+  end
   describe "#validate_config" do
     it "raises InvalidConfig if no config is set" do
       lambda {
