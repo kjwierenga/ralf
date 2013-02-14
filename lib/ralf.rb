@@ -19,7 +19,7 @@ class Ralf
   #  :days_to_ignore => 2,    # ignore N days
   #  :aws_key    => '--AWS_KEY--',
   #  :aws_secret => '--AWS_SECTRET--',
-  #  :log_buckets => ["logbucket1", "logbucket2"],
+  #  :log_bucket => "logbucket1",
   #  :log_prefix => 'logs/'
   def read_config(file)
     @config = symbolize_keys(YAML::load(File.open(file)))
@@ -28,7 +28,7 @@ class Ralf
   def validate_config
     raise InvalidConfig.new("No config set") if config.nil?
     errors = []
-    [:cache_dir, :output_dir, :days_to_look_back, :days_to_ignore, :aws_key, :aws_secret, :log_buckets, :log_prefix].each do |c|
+    [:cache_dir, :output_dir, :days_to_look_back, :days_to_ignore, :aws_key, :aws_secret, :log_bucket, :log_prefix].each do |c|
       errors << c if config[c].nil?
     end
     errors << "Cache dir does not exixst" if config[:cache_dir] && ! File.exist?(config[:cache_dir])
@@ -48,11 +48,9 @@ class Ralf
     )
   end
 
-  def iterate_and_process_log_buckets
-    config[:log_buckets].each do |log_bucket|
-      bucket = BucketProcessor.new(s3.bucket(log_bucket), self)
-      bucket.process
-    end
+  def process_log_bucket
+    bucket = BucketProcessor.new(s3.bucket(config[:log_bucket]), self)
+    bucket.process
   end
 
 private

@@ -92,7 +92,7 @@ class Ralf::BucketProcessor
 
 private
 
-  def extract_range(all_loglines)
+  def extract_range_from_collection(all_loglines)
     (Date.parse(all_loglines.first.timestamp.strftime("%Y/%m/%d"))..Date.parse(all_loglines.last.timestamp.strftime("%Y/%m/%d"))).to_a
   end
 

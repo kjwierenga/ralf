@@ -26,7 +26,7 @@ describe Ralf do
       subject.stub(:config).and_return({})
       lambda {
         subject.validate_config
-      }.should raise_error(Ralf::InvalidConfig, "Required options: 'cache_dir', 'output_dir', 'days_to_look_back', 'days_to_ignore', 'aws_key', 'aws_secret', 'log_buckets', 'log_prefix'")
+      }.should raise_error(Ralf::InvalidConfig, "Required options: 'cache_dir', 'output_dir', 'days_to_look_back', 'days_to_ignore', 'aws_key', 'aws_secret', 'log_bucket', 'log_prefix'")
     end
     it "does not raise errors when minimal required options are set" do
       subject.stub(:config).and_return({
@@ -36,7 +36,7 @@ describe Ralf do
         :days_to_ignore => 2,
         :aws_key    => '--AWS_KEY--',
         :aws_secret => '--AWS_SECTRET--',
-        :log_buckets => ["logbucket1", "logbucket2"],
+        :log_bucket => "logbucket",
         :log_prefix => 'logs/'
       })
       File.should_receive(:exist?).with('./cache').and_return(true)
@@ -52,7 +52,7 @@ describe Ralf do
         :days_to_ignore => 2,
         :aws_key    => '--AWS_KEY--',
         :aws_secret => '--AWS_SECTRET--',
-        :log_buckets => ["logbucket1", "logbucket2"],
+        :log_bucket => "logbucket",
         :log_prefix => 'logs/'
       })
       File.should_receive(:exist?).with('./cache').and_return(false)
@@ -73,16 +73,16 @@ describe Ralf do
     end
   end
 
-  describe "#iterate_and_process_log_buckets" do
-    it "iterates over configured log_buckets" do
-      subject.stub(:config).and_return({:log_buckets => ['berl-log']})
+  describe "#process_log_bucket" do
+    it "process configured log_bucket" do
+      subject.stub(:config).and_return({:log_bucket => ['berl-log']})
       s3_bucket_mock = mock(RightAws::S3::Bucket)
       subject.stub(:s3).and_return(mock(RightAws::S3, :bucket => s3_bucket_mock))
       processor = mock(Ralf::BucketProcessor)
       processor.should_receive(:process)
       Ralf::BucketProcessor.should_receive(:new).and_return(processor)
 
-      subject.iterate_and_process_log_buckets
+      subject.process_log_bucket
     end
   end
 
