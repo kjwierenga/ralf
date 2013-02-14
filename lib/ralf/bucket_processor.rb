@@ -28,6 +28,7 @@ class Ralf::BucketProcessor
   end
 
   def process_keys_for_date(date)
+    puts "\nProcess keys for date #{date}" if config[:debug]
     keys = bucket.keys('prefix' => prefix(date))
     keys.collect { |key| download_key(key) }
   end
@@ -35,14 +36,19 @@ class Ralf::BucketProcessor
   def download_key(key)
     file_name = File.join(cache_dir, key.name.gsub(config[:log_prefix], ''))
     unless File.exist?(file_name)
+      print "Downloading: %s\r" % file_name if config[:debug]
+      $stdout.flush
       File.open(file_name, 'w') { |f| f.write(key.data) }
     end
     file_name
   end
 
   def merge(file_names)
+    puts "Merging %d files" % file_names.size if config[:debug]
     lines = []
     file_names.collect do |file_name|
+      print "Reading: %s \r" % file_name if config[:debug]
+      $stdout.flush
       File.open(file_name) do |in_file|
         while (line = in_file.gets)
           translated = Ralf::ClfTranslator.new(line, config)
@@ -50,10 +56,12 @@ class Ralf::BucketProcessor
         end
       end
     end
+    puts "\nSorting..." if config[:debug]
     lines.sort! { |a,b| a[:timestamp] <=> b[:timestamp] }
   end
 
   def write_to_combined(all_loglines)
+    puts "Write to Combined" if config[:debug]
     range = extract_range_from_collection(all_loglines)
     ensure_output_directories(range)
     open_file_descriptors(range)
@@ -74,6 +82,7 @@ class Ralf::BucketProcessor
       @open_files[date.year][date.month] ||= {}
       @open_files[date.year][date.month][date.day] = File.open(output_filename, 'w')
     end
+    puts "Opened outputs" if config[:debug]
   end
 
   def close_file_descriptors
@@ -84,6 +93,7 @@ class Ralf::BucketProcessor
         end
       end
     end
+    puts "Closed outputs" if config[:debug]
   end
 
   def ensure_output_directories(range)
