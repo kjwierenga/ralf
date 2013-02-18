@@ -13,6 +13,7 @@ class Ralf::BucketProcessor
   end
 
   def process
+  
     file_names_to_process = ignore_days(process_keys_for_range).flatten
     all_loglines = merge(file_names_to_process)
     write_to_combined(all_loglines)
@@ -107,7 +108,11 @@ class Ralf::BucketProcessor
   end
 
   def cache_dir
-    Ralf::Interpolation.interpolate(config[:cache_dir], {:bucket => bucket.name}, [:bucket])
+    @cache_dir ||= begin
+      interpolated_cache_dir = Ralf::Interpolation.interpolate(config[:cache_dir], {:bucket => bucket.name}, [:bucket])
+      raise Ralf::InvalidConfig.new("Required options: 'Cache dir does not exixst'") unless File.exist?(interpolated_cache_dir)
+      interpolated_cache_dir
+    end
   end
 
 private

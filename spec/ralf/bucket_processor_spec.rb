@@ -50,14 +50,15 @@ describe Ralf::BucketProcessor do
     describe "#download_key" do
       before do
         @key_mock1 = mock(RightAws::S3::Key, :name => 'logs/2013-02-11-00-05-23-UYVJCTKCTGFRDZ', :data => 'AWS LOGLINE')
+        subject.should_receive(:cache_dir).and_return('./logs/cache/logfilebucket/')
       end
       it "downloads key if it does not exists" do
-        File.should_receive(:exist?).and_return(false)
+        File.should_receive(:exist?).with('./logs/cache/logfilebucket/2013-02-11-00-05-23-UYVJCTKCTGFRDZ').and_return(false)
         File.should_receive(:open).with("./logs/cache/logfilebucket/2013-02-11-00-05-23-UYVJCTKCTGFRDZ", "w").and_yield(mock(File, :write => true))
         subject.download_key(@key_mock1)
       end
       it "skip download for key if it already exists in cache" do
-        File.should_receive(:exist?).and_return(true)
+        File.should_receive(:exist?).with('./logs/cache/logfilebucket/2013-02-11-00-05-23-UYVJCTKCTGFRDZ').and_return(true)
         File.should_not_receive(:open)
         subject.download_key(@key_mock1)
       end
@@ -127,8 +128,14 @@ describe Ralf::BucketProcessor do
     end
     describe "#cache_dir" do
       it "interpolates the cache_dir" do
+        File.should_receive(:exist?).with('cache/logfilebucket').and_return(true)
         subject.should_receive(:config).and_return({:cache_dir => 'cache/:bucket'})
         subject.cache_dir.should eql('cache/logfilebucket')
+      end
+      it "raises error if cache_dir does not exists" do
+        lambda {
+          subject.cache_dir
+        }.should raise_error(Ralf::InvalidConfig, "Required options: 'Cache dir does not exixst'")
       end
     end
   end

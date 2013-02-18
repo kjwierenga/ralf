@@ -36,7 +36,6 @@ class Ralf
     [:cache_dir, :output_dir, :days_to_look_back, :days_to_ignore, :aws_key, :aws_secret, :log_bucket, :log_prefix].each do |c|
       errors << c if config[c].nil?
     end
-    errors << "Cache dir does not exixst" if config[:cache_dir] && ! File.exist?(config[:cache_dir])
     if errors.size > 0
       raise InvalidConfig.new("Required options: '#{errors.join("', '")}'")
     end

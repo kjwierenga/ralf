@@ -46,26 +46,9 @@ describe Ralf do
         :log_bucket => "logbucket",
         :log_prefix => 'logs/'
       })
-      File.should_receive(:exist?).with('./cache').and_return(true)
       lambda {
         subject.validate_config
       }.should_not raise_error
-    end
-    it "raises error if cache_dir does not exists" do
-      subject.stub(:config).and_return({
-        :cache_dir  => './cache',
-        :output_dir => './logs/:year/:month/:day',
-        :days_to_look_back => 5,
-        :days_to_ignore => 2,
-        :aws_key    => '--AWS_KEY--',
-        :aws_secret => '--AWS_SECTRET--',
-        :log_bucket => "logbucket",
-        :log_prefix => 'logs/'
-      })
-      File.should_receive(:exist?).with('./cache').and_return(false)
-      lambda {
-        subject.validate_config
-      }.should raise_error(Ralf::InvalidConfig, "Required options: 'Cache dir does not exixst'")
     end
   end
 
