@@ -60,4 +60,32 @@ describe Ralf::ClfTranslator do
       Ralf::ClfTranslator.new(aws_line).to_s.should eql(clf_line)
     end
   end
+  context "ignore clflines" do
+    before do
+        # '127.0.0.1 - - [19/Jan/2012:04:04:31 +0100] "GET /.me.html HTTP/1.0" 404 72 "-" "Pingdom.com_bot_version_1.4_(http://www.pingdom.com/)" 0'
+      @line = Ralf::ClfTranslator.new(
+        '2cf7e6b06335c0689c6d29163df5bb001c96870cd78609e3845f1ed76a632621 assets.staging.kerkdienstgemist.nl [10/Feb/2010:07:24:40 +0000] 10.217.37.15 - 0B76C90B3634290B REST.GET.ACL - "GET /.me.html HTTP/1.1" 404 TemporaryRedirect 488 - 7 - "-" "Pingdom.com_bot_version_1.4_(http://www.pingdom.com/)" -'
+      )
+    end
+    it "with useragent 'Pingdom'" do
+      @line.options[:ignore_list] = {:user_agent => ['Pingdom.*', 'Icecast.*']}
+      @line.user_agent.should eql('Pingdom.com_bot_version_1.4_(http://www.pingdom.com/)')
+      @line.ignore?.should be_true
+    end
+    it "with url 'GET /.me.html'" do
+      @line.options[:ignore_list] = {:request_uri => ['GET /.me.html','GET /.status.xsl']}
+      @line.request_uri.should eql('GET /.me.html HTTP/1.1')
+      @line.ignore?.should be_true
+    end
+    it "with ip '127.0.0.1'" do
+      @line.options[:ignore_list] = {:remote_ip => ['10.217.37.15']}
+      @line.remote_ip.should eql('10.217.37.15')
+      @line.ignore?.should be_true
+    end
+    it "with status '404'" do
+      @line.options[:ignore_list] = {:http_status => ["404"]}
+      @line.http_status.should eql("404")
+      @line.ignore?.should be_true
+    end
+  end
 end

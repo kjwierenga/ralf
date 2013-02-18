@@ -35,6 +35,19 @@ class Ralf::ClfTranslator
     end
   end
 
+  def ignore?
+    options[:ignore_list].each do |key, ignores|
+      # raise key.inspect
+      # raise send(key).inspect
+      ignores.each do |ignore|
+        if send(key).to_s =~ /#{ignore}/
+          return true
+        end
+      end
+    end
+    false
+  end
+
 private
 
   def requester

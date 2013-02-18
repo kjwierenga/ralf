@@ -3,7 +3,7 @@
 - for each bucket:
   - √ sync the logfiles from the last N days onto the local filesystem
   - √ load every logfile in memory and merge it in a hashtable
-  -   remove ignore lines
+  - √ remove ignored lines
   - √ sort it by timestamp
   - save and optionally split it in a directory (ex. :year/:month/:day) as given in the options
   - merge the last N days into combined ordered logs
