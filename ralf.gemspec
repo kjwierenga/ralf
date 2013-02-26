@@ -8,7 +8,7 @@ Gem::Specification.new do |gem|
   gem.version       = Ralf::VERSION
   gem.authors       = ["Leon Berenschot"]
   gem.email         = ["leipeleon@gmail.com"]
-  gem.description   = %q{TODO: Write a gem description}
+  gem.description   = %q{Download and convert S3 logfiles into one (1) CLF file per day}
   gem.summary       = %q{TODO: Write a gem summary}
   gem.homepage      = ""
 
