@@ -107,15 +107,34 @@ describe Ralf::BucketProcessor do
       end
     end
     describe "#ensure_output_directories" do
+      before do
+        subject.should_receive(:start_day).and_return(Date.new(2013, 2, 11))
+        Date.should_receive(:today).and_return(Date.new(2013, 2, 13))
+      end
       it "ensures that base dir exists" do
-        FileUtils.should_receive(:mkdir_p).with('./logs/logfilebucket/2013/02')
-        subject.ensure_output_directories([Date.new(2013, 2, 13)])
+        FileUtils.should_receive(:mkdir_p).with('./logs/logfilebucket/2013/02').twice
+        subject.ensure_output_directories
+      end
+      it "does not create other directories" do
+        FileUtils.should_not_receive(:mkdir_p).with('./logs/logfilebucket/2013/01')
+        FileUtils.should_not_receive(:mkdir_p).with('./logs/logfilebucket/2013/03')
+        subject.ensure_output_directories
       end
     end
     describe "#open_file_descriptors" do
+      before do
+        subject.should_receive(:start_day).and_return(Date.new(2013, 2, 11))
+        Date.should_receive(:today).and_return(Date.new(2013, 2, 13))
+      end
       it "opens filedescriptors" do
+        File.should_receive(:open).with('./logs/logfilebucket/2013/02/12.log', 'w')
         File.should_receive(:open).with('./logs/logfilebucket/2013/02/13.log', 'w')
-        subject.open_file_descriptors([Date.new(2013, 2, 13)])
+        subject.open_file_descriptors
+      end
+      it "does nog open filedescriptors outside of the range" do
+        File.should_not_receive(:open).with('./logs/logfilebucket/2013/02/11.log', 'w')
+        File.should_not_receive(:open).with('./logs/logfilebucket/2013/02/14.log', 'w')
+        subject.open_file_descriptors
       end
     end
     describe "#close_file_descriptors" do
@@ -136,6 +155,52 @@ describe Ralf::BucketProcessor do
         lambda {
           subject.cache_dir
         }.should raise_error(Ralf::InvalidConfig, "Required options: 'Cache dir does not exixst'")
+      end
+    end
+    describe "#date_range" do
+      before do
+        Date.stub(:today).and_return(Date.new(2013, 2, 4))
+      end
+      it "creates an array with dates" do
+        subject.config[:days_to_look_back] = 8
+        subject.config[:days_to_ignore] = 0
+        subject.date_range.should eql([
+          Date.new(2013, 1, 28),
+          Date.new(2013, 1, 29),
+          Date.new(2013, 1, 30),
+          Date.new(2013, 1, 31),
+          Date.new(2013, 2, 1),
+          Date.new(2013, 2, 2),
+          Date.new(2013, 2, 3),
+          Date.new(2013, 2, 4)
+        ])
+      end
+    end
+    describe "#date_range_with_ignored_days" do
+      before do
+        Date.stub(:today).and_return(Date.new(2013, 2, 4))
+      end
+      it "substracts 2 dates from date_range" do
+        subject.config[:days_to_look_back] = 8
+        subject.config[:days_to_ignore] = 2
+        subject.date_range_with_ignored_days.should eql([
+          Date.new(2013, 1, 30),
+          Date.new(2013, 1, 31),
+          Date.new(2013, 2, 1),
+          Date.new(2013, 2, 2),
+          Date.new(2013, 2, 3),
+          Date.new(2013, 2, 4)
+        ])
+      end
+      it "substracts 4 dates from date_range" do
+        subject.config[:days_to_look_back] = 8
+        subject.config[:days_to_ignore] = 4
+        subject.date_range_with_ignored_days.should eql([
+          Date.new(2013, 2, 1),
+          Date.new(2013, 2, 2),
+          Date.new(2013, 2, 3),
+          Date.new(2013, 2, 4)
+        ])
       end
     end
   end

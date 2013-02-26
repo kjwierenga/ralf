@@ -13,19 +13,13 @@ class Ralf::BucketProcessor
   end
 
   def process
-  
-    file_names_to_process = ignore_days(process_keys_for_range).flatten
+    file_names_to_process = process_keys_for_range.flatten
     all_loglines = merge(file_names_to_process)
     write_to_combined(all_loglines)
   end
 
-  def ignore_days(processed_keys_for_range)
-    processed_keys_for_range.shift(config[:days_to_ignore]) # remove N items from range
-    processed_keys_for_range
-  end
-
   def process_keys_for_range
-    date_range.to_a.collect { |date| process_keys_for_date(date)}
+    date_range.collect { |date| process_keys_for_date(date)}
   end
 
   def process_keys_for_date(date)
@@ -63,9 +57,8 @@ class Ralf::BucketProcessor
 
   def write_to_combined(all_loglines)
     puts "Write to Combined" if config[:debug]
-    range = extract_range_from_collection(all_loglines)
-    ensure_output_directories(range)
-    open_file_descriptors(range)
+    ensure_output_directories
+    open_file_descriptors
 
     all_loglines.each do |line|
       open_files[line[:timestamp].year][line[:timestamp].month][line[:timestamp].day].puts line[:string] if open_files[line[:timestamp].year][line[:timestamp].month][line[:timestamp].day]
@@ -75,9 +68,9 @@ class Ralf::BucketProcessor
     close_file_descriptors
   end
 
-  def open_file_descriptors(range)
+  def open_file_descriptors
     @open_files = {}
-    range.each do |date|
+    date_range_with_ignored_days.each do |date|
       output_filename = Ralf::Interpolation.interpolate(config[:output_dir], {:bucket => bucket.name, :date => date}, [:bucket])
       @open_files[date.year] ||= {}
       @open_files[date.year][date.month] ||= {}
@@ -97,8 +90,8 @@ class Ralf::BucketProcessor
     puts "Closed outputs" if config[:debug]
   end
 
-  def ensure_output_directories(range)
-    range.each do |date|
+  def ensure_output_directories
+    date_range_with_ignored_days.each do |date|
       output_filename = Ralf::Interpolation.interpolate(config[:output_dir], {:bucket => bucket.name, :date => date}, [:bucket])
       base_dir = File.dirname(output_filename)
       unless File.exist?(base_dir)
@@ -115,15 +108,15 @@ class Ralf::BucketProcessor
     end
   end
 
-private
+  def date_range_with_ignored_days
+    date_range[config[:days_to_ignore], config[:days_to_look_back]]
+  end
 
   def date_range
-    (start_day..Date.today)
+    (start_day..Date.today).to_a
   end
 
-  def extract_range_from_collection(all_loglines)
-    (Date.parse(all_loglines.first[:timestamp].strftime("%Y/%m/%d"))..Date.parse(all_loglines.last[:timestamp].strftime("%Y/%m/%d"))).to_a
-  end
+private
 
   def start_day
     Date.today-(config[:days_to_look_back]-1)
