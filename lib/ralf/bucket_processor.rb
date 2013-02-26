@@ -23,7 +23,7 @@ class Ralf::BucketProcessor
   end
 
   def process_keys_for_date(date)
-    puts "\nProcess keys for date #{date}" if config[:debug]
+    debug("\nProcess keys for date #{date}")
     keys = bucket.keys('prefix' => prefix(date))
     keys.collect { |key| download_key(key) }
   end
@@ -31,7 +31,7 @@ class Ralf::BucketProcessor
   def download_key(key)
     file_name = File.join(cache_dir, key.name.gsub(config[:log_prefix], ''))
     unless File.exist?(file_name)
-      print "Downloading: %s\r" % file_name if config[:debug]
+      print "%s: Downloading: %s\r" % [DateTime.now, file_name] if config[:debug]
       $stdout.flush
       File.open(file_name, 'w') { |f| f.write(key.data) }
     end
@@ -39,10 +39,10 @@ class Ralf::BucketProcessor
   end
 
   def merge(file_names)
-    puts "Merging %d files" % file_names.size if config[:debug]
+    debug("Merging %d files" % file_names.size)
     lines = []
     file_names.collect do |file_name|
-      print "Reading: %s \r" % file_name if config[:debug]
+      print "%s: Reading: %s \r" % [DateTime.now, file_name]
       $stdout.flush
       File.open(file_name) do |in_file|
         while (line = in_file.gets)
@@ -51,14 +51,14 @@ class Ralf::BucketProcessor
         end
       end
     end
-    puts "\nSorting..." if config[:debug]
+    debug("\nSorting...")
     lines.sort! { |a,b| a[:timestamp] <=> b[:timestamp] }
   end
 
   def write_to_combined(all_loglines)
-    puts "Write to Combined" if config[:debug]
     ensure_output_directories
     open_file_descriptors
+    debug("Write to Combined")
 
     all_loglines.each do |line|
       open_files[line[:timestamp].year][line[:timestamp].month][line[:timestamp].day].puts line[:string] if open_files[line[:timestamp].year][line[:timestamp].month][line[:timestamp].day]
@@ -76,7 +76,7 @@ class Ralf::BucketProcessor
       @open_files[date.year][date.month] ||= {}
       @open_files[date.year][date.month][date.day] = File.open(output_filename, 'w')
     end
-    puts "Opened outputs" if config[:debug]
+    debug("Opened outputs")
   end
 
   def close_file_descriptors
@@ -87,7 +87,7 @@ class Ralf::BucketProcessor
         end
       end
     end
-    puts "Closed outputs" if config[:debug]
+    debug("Closed outputs")
   end
 
   def ensure_output_directories
@@ -124,6 +124,10 @@ private
 
   def prefix(date)
     "%s%s" % [config[:log_prefix], date]
+  end
+
+  def debug(str)
+    puts "%s: %s" % [DateTime.now, str] if config[:debug]
   end
 
 end
