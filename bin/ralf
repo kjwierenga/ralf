@@ -28,10 +28,4 @@ begin
   ralf.initialize_s3
   ralf.process_log_bucket
 
-rescue => e
-  if options[:debug]
-    raise
-  else
-    $stderr.puts "Error: #{e}"
-  end
 end
