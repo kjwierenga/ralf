@@ -7,6 +7,7 @@ class Ralf::BucketProcessor
   attr_reader :open_files
 
   def initialize(s3_bucket, ralf)
+    @open_files = {}
     @bucket = s3_bucket
     @config = ralf.config
     @keys = []
@@ -61,7 +62,7 @@ class Ralf::BucketProcessor
     debug("Write to Combined")
 
     all_loglines.each do |line|
-      open_files[line[:timestamp].year][line[:timestamp].month][line[:timestamp].day].puts line[:string] if open_files[line[:timestamp].year][line[:timestamp].month][line[:timestamp].day]
+      open_files[key_for_date(line[:timestamp])].puts(line[:string]) if open_files[key_for_date(line[:timestamp])]
     end
 
   ensure
@@ -69,24 +70,15 @@ class Ralf::BucketProcessor
   end
 
   def open_file_descriptors
-    @open_files = {}
     date_range_with_ignored_days.each do |date|
       output_filename = Ralf::Interpolation.interpolate(config[:output_dir], {:bucket => bucket.name, :date => date}, [:bucket])
-      @open_files[date.year] ||= {}
-      @open_files[date.year][date.month] ||= {}
-      @open_files[date.year][date.month][date.day] = File.open(output_filename, 'w')
+      @open_files[key_for_date(date)] = File.open(output_filename, 'w')
     end
     debug("Opened outputs")
   end
 
   def close_file_descriptors
-    open_files.each do |year, year_values|
-      year_values.each do |month, month_values|
-        month_values.each do |day, day_values|
-          day_values.close
-        end
-      end
-    end
+    open_files.each {|k,v| v.close }
     debug("Closed outputs")
   end
 
@@ -117,6 +109,10 @@ class Ralf::BucketProcessor
   end
 
 private
+
+  def key_for_date(date)
+    "%d%02d%02d" % [date.year, date.month, date.day]
+  end
 
   def start_day
     Date.today-(config[:days_to_look_back]-1)

@@ -83,20 +83,19 @@ describe Ralf::BucketProcessor do
       end
     end
     describe "#write_to_combined" do
-      it "writes to combined files in the subirectories" do
+      it "writes to combined files in the subdirectories" do
         subject.stub(:ensure_output_directories).and_return(true)
         subject.stub(:open_file_descriptors).and_return(true)
         subject.stub(:close_file_descriptors).and_return(true)
 
-        open_file_11 = StringIO.new
         open_file_12 = StringIO.new
         open_file_13 = StringIO.new
-        subject.stub(:open_files).and_return({2013 => {2 =>{
-          12 => open_file_12,
-          13 => open_file_13
-        }}})
+
         open_file_12.should_receive(:puts).twice.and_return(true)
         open_file_13.should_receive(:puts).and_return(true)
+
+        subject.open_files["20130212"] = open_file_12
+        subject.open_files["20130213"] = open_file_13
 
         subject.write_to_combined([
           {:timestamp => Time.mktime(2013, 2, 11, 16, 34, 26, '+0000').utc   , :string => 'logfile_string'},
@@ -140,7 +139,7 @@ describe Ralf::BucketProcessor do
     describe "#close_file_descriptors" do
       it "closes filedescriptors" do
         open_file = StringIO.new
-        subject.stub(:open_files).and_return({2013 => {2 =>{13 => open_file}}})
+        subject.stub(:open_files).and_return({"20130213" => open_file})
         open_file.should_receive(:close).and_return(true)
         subject.close_file_descriptors
       end
