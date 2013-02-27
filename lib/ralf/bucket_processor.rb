@@ -39,10 +39,10 @@ class Ralf::BucketProcessor
   end
 
   def merge(file_names)
-    debug("Merging %d files" % file_names.size)
+    debug("Merging %05d files" % file_names.size)
     lines = []
-    file_names.collect do |file_name|
-      print "%s: Reading: %s \r" % [DateTime.now, file_name]
+    file_names.each_with_index do |file_name, idx|
+      print "%s: %05d Reading: %s \r" % [DateTime.now, idx, file_name] if config[:debug]
       $stdout.flush
       File.open(file_name) do |in_file|
         while (line = in_file.gets)
