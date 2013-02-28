@@ -8,9 +8,9 @@ Gem::Specification.new do |gem|
   gem.version       = Ralf::VERSION
   gem.authors       = ["Leon Berenschot"]
   gem.email         = ["leipeleon@gmail.com"]
-  gem.description   = %q{Download and convert S3 logfiles into one (1) CLF file per day}
-  gem.summary       = %q{TODO: Write a gem summary}
-  gem.homepage      = ""
+  gem.description   = %q{Download and convert S3 logfiles into a CLF file per day}
+  gem.summary       = %q{Download and convert S3 logfiles into a CLF file per day}
+  gem.homepage      = "https://github.com/kjwierenga/ralf"
 
   gem.files         = `git ls-files`.split($/)
   gem.executables   = gem.files.grep(%r{^bin/}).map{ |f| File.basename(f) }
