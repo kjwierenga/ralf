@@ -21,7 +21,7 @@ Gem::Specification.new do |gem|
   gem.add_development_dependency "autotest"
   gem.add_development_dependency "fakeweb"
 
-  gem.add_runtime_dependency "right_aws", "~> 3.0.4"
+  gem.add_runtime_dependency "right_aws", "~> 1.10.0"
   # gem.add_runtime_dependency "logmerge",  "~> 1.0.3"
   # gem.add_runtime_dependency "chronic",   "~> 0.9.0"
 

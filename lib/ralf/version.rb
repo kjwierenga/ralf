@@ -1,4 +1,4 @@
 class Ralf
-  Version = "2.0.0"
+  Version = "1.8.6"
   Release = '003'
 end
