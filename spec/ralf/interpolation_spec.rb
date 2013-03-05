@@ -1,8 +1,9 @@
-require File.dirname(__FILE__) + '/../spec_helper'
+require 'spec_helper'
 
 require 'ralf/interpolation'
 
 describe Ralf::Interpolation do
+
   before(:all) do
     @bucket = 'bucket.mybuckets.org'
     @date = Date.strptime('2010-02-09')

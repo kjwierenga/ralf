@@ -1,41 +1,31 @@
 #!/usr/bin/env ruby
 $LOAD_PATH.unshift(File.join(File.dirname(__FILE__), '..', 'lib'))
 
+require 'rubygems'
 require 'ralf'
-require 'ralf/option_parser'
 
-# Class to suppress writing of a particular string to an IO instance
-class IOSuppress < IO
-
-  @expect_newline = false
-  @suppress = nil
-  
-  def initialize(suppress, *args)
-    @suppress = suppress
-    super(*args)
-  end
-
-  # override write method to suppress string
-  def write(str)
-    case str
-    when "\n"
-      if @expect_newline
-        @expect_newline = false
-        return 1
-      end
-    when @suppress
-      @expect_newline = true
-      return @suppress.size
-    end
-    super(str)
-  end
-end
-$stderr = IOSuppress.new("warning: peer certificate won't be verified in this SSL session", $stderr.fileno, "w")
+# Bring OptionParser into the namespace
+require 'optparse'
 
 begin
-  if options = Ralf::OptionParser.parse(ARGV)
-    Ralf.run(options)
+  options = {
+    :config_file => './ralf.conf',
+    :debug => false
+  }
+
+  option_parser = OptionParser.new do |opts|
+    opts.on("-c FILE","--config FILE") do |file_name|
+      options[:config_file] = file_name
+    end
+    opts.on("--trace") do |debug|
+      options[:debug] = true
+    end
   end
-rescue => e
-  $stderr.puts "Error: #{e}"
+  option_parser.parse!
+
+  ralf = Ralf.new
+  ralf.read_config_from_file(options[:config_file])
+  ralf.initialize_s3
+  ralf.process_log_bucket
+
 end

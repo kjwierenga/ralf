@@ -4,7 +4,7 @@ class Ralf::ClfTranslator
   AMAZON_LOG_COPY_FORMAT = Regexp.new('([^ ]*) ([^ ]*) \[([^\]]*)\] ([^ ]*) ([^ ]*) ([^ ]*) (REST.COPY.OBJECT_GET) ([^ ]*) (-) ([^ ]*) (-) (-) ([^ ]*) (-) (-) (-) (-) (-)')
 
   attr :line
-  attr_reader :owner, :bucket, :timestamp, :remote_ip, :request_id, :operation, :key, :request_uri, :http_status, :s3_error_code, :bytes_sent, :object_size, :total_time_in_ms, :turn_around_time_in_ms, :referrer, :user_agent, :request_version_id, :duration
+  attr_reader :owner, :bucket, :remote_ip, :request_id, :operation, :key, :request_uri, :http_status, :s3_error_code, :bytes_sent, :object_size, :total_time_in_ms, :turn_around_time_in_ms, :referrer, :user_agent, :request_version_id, :duration
   attr_reader :options
 
   # options:
@@ -18,13 +18,34 @@ class Ralf::ClfTranslator
     @line = line
     @translate_successfull = translate
   end
+  
+  def timestamp
+    Ralf::ClfTime.parse(@timestamp)
+  end
+
+  def formatted_timestamp
+    timestamp.strftime("%d/%b/%Y:%H:%M:%S %z")
+  end
 
   def to_s
     if @translate_successfull
-      "%s - %s [%s] \"%s\" %s %s \"%s\" \"%s\" %d" % [remote_ip, requester, timestamp, request_uri, http_status, bytes_sent, referrer, user_agent, duration]
+      "%s - %s [%s] \"%s\" %s %s \"%s\" \"%s\" %d" % [remote_ip, requester, formatted_timestamp, request_uri, http_status, bytes_sent, referrer, user_agent, duration]
     else
       nil
     end
+  end
+
+  def ignore?
+    options[:ignore_list].each do |key, ignores|
+      # raise key.inspect
+      # raise send(key).inspect
+      ignores.each do |ignore|
+        if send(key).to_s =~ /#{ignore}/
+          return true
+        end
+      end
+    end
+    false
   end
 
 private
