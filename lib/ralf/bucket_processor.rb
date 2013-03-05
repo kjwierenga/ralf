@@ -16,7 +16,22 @@ class Ralf::BucketProcessor
   def process
     file_names_to_process = process_keys_for_range.flatten
     all_loglines = merge(file_names_to_process)
-    write_to_combined(all_loglines)
+    write_to_day_files(all_loglines)
+    combine_day_files
+  end
+
+  def combine_day_files
+    covered_months.collect do |date|
+      base_dir =        Ralf::Interpolation.interpolate([config[:output_dir],'[0-9][0-9].log'].join('/'), {:bucket => bucket.name, :date => date}, [:bucket])
+      output_filename = Ralf::Interpolation.interpolate(config[:month_file], {:bucket => bucket.name, :date => date}, [:bucket])
+      out = File.open(output_filename, "w")
+      Dir[base_dir].each do |f|
+        File.open(f).read.each do |line|
+          out << line
+        end
+      end
+      out.close
+    end
   end
 
   def process_keys_for_range
@@ -56,10 +71,10 @@ class Ralf::BucketProcessor
     lines.sort! { |a,b| a[:timestamp] <=> b[:timestamp] }
   end
 
-  def write_to_combined(all_loglines)
+  def write_to_day_files(all_loglines)
     ensure_output_directories
     open_file_descriptors
-    debug("Write to Combined")
+    debug("Write to Dayfiles")
 
     all_loglines.each do |line|
       open_files[key_for_date(line[:timestamp])].puts(line[:string]) if open_files[key_for_date(line[:timestamp])]
@@ -71,7 +86,7 @@ class Ralf::BucketProcessor
 
   def open_file_descriptors
     date_range_with_ignored_days.each do |date|
-      output_filename = Ralf::Interpolation.interpolate(config[:output_dir], {:bucket => bucket.name, :date => date}, [:bucket])
+      output_filename = Ralf::Interpolation.interpolate(config[:day_file], {:bucket => bucket.name, :date => date}, [:bucket])
       @open_files[key_for_date(date)] = File.open(output_filename, 'w')
     end
     debug("Opened outputs")
@@ -84,8 +99,7 @@ class Ralf::BucketProcessor
 
   def ensure_output_directories
     date_range_with_ignored_days.each do |date|
-      output_filename = Ralf::Interpolation.interpolate(config[:output_dir], {:bucket => bucket.name, :date => date}, [:bucket])
-      base_dir = File.dirname(output_filename)
+      base_dir = Ralf::Interpolation.interpolate(config[:output_dir], {:bucket => bucket.name, :date => date}, [:bucket])
       unless File.exist?(base_dir)
         FileUtils.mkdir_p(base_dir)
       end
@@ -106,6 +120,11 @@ class Ralf::BucketProcessor
 
   def date_range
     (start_day..Date.today).to_a
+  end
+
+  def covered_months
+    month_start = Date.new(start_day.year, start_day.month)
+    (month_start..Date.today).select {|d| d.day == 1}
   end
 
 private

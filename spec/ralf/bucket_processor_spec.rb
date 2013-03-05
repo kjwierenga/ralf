@@ -7,7 +7,9 @@ describe Ralf::BucketProcessor do
     @s3_bucket_mock = mock(RightAws::S3::Bucket, :name => "logfilebucket")
     @ralf = mock(Ralf, :config => {
       :cache_dir  => './logs/cache/:bucket',
-      :output_dir => './logs/:bucket/:year/:month/:day.log',
+      :output_dir => './logs/:bucket/:year/:month',
+      :day_file   => './logs/:bucket/:year/:month/:day.log',
+      :month_file => './logs/:bucket/:year/:month/combined.log',
       :log_prefix => 'logs/',
       :days_to_look_back => 3,
       :days_to_ignore => 1,
@@ -82,7 +84,7 @@ describe Ralf::BucketProcessor do
         ])
       end
     end
-    describe "#write_to_combined" do
+    describe "#write_to_day_files" do
       it "writes to combined files in the subdirectories" do
         subject.stub(:ensure_output_directories).and_return(true)
         subject.stub(:open_file_descriptors).and_return(true)
@@ -97,7 +99,7 @@ describe Ralf::BucketProcessor do
         subject.open_files["20130212"] = open_file_12
         subject.open_files["20130213"] = open_file_13
 
-        subject.write_to_combined([
+        subject.write_to_day_files([
           {:timestamp => Time.mktime(2013, 2, 11, 16, 34, 26, '+0000').utc   , :string => 'logfile_string'},
           {:timestamp => Time.mktime(2013, 2, 12, 16, 34, 26, '+0000').utc+10, :string => 'logfile_string'},
           {:timestamp => Time.mktime(2013, 2, 12, 16, 34, 26, '+0000').utc+15, :string => 'logfile_string'},
@@ -200,6 +202,40 @@ describe Ralf::BucketProcessor do
           Date.new(2013, 2, 3),
           Date.new(2013, 2, 4)
         ])
+      end
+    end
+    describe "#covered_months" do
+      before do
+        Date.stub(:today).and_return(Date.new(2013, 2, 4))
+      end
+      it "returns all months in range" do
+        subject.config[:days_to_look_back] = 120
+        subject.config[:days_to_ignore] = 4
+        subject.covered_months.should eql([
+          Date.new(2012, 10),
+          Date.new(2012, 11),
+          Date.new(2012, 12),
+          Date.new(2013,  1),
+          Date.new(2013,  2)
+        ])
+      end
+      it "returns all months in selected range" do
+        subject.config[:days_to_look_back] = 8
+        subject.config[:days_to_ignore] = 4
+        subject.covered_months.should eql([
+          Date.new(2013,  1),
+          Date.new(2013,  2)
+        ])
+      end
+    end
+    describe "#combine_day_files" do
+      before do
+        Date.stub(:today).and_return(Date.new(2013, 2, 4))
+      end
+      it "iterates over input files and combines them" do
+        combined_log = StringIO.new
+        File.should_receive(:open).with('./logs/logfilebucket/2013/02/combined.log', "w").and_return(combined_log)
+        subject.combine_day_files #.should eql(['2013-01-01', '2013-02-01'])
       end
     end
   end
