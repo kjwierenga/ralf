@@ -1,3 +1,3 @@
 class Ralf
-  VERSION = "2.0.0"
+  VERSION = "1.8.6_p002"
 end
