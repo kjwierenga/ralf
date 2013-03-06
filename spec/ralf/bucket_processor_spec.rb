@@ -232,9 +232,35 @@ describe Ralf::BucketProcessor do
       before do
         Date.stub(:today).and_return(Date.new(2013, 2, 4))
       end
-      it "iterates over input files and combines them" do
+      it "iterates over ordered input files and combines them" do
         combined_log = StringIO.new
-        File.should_receive(:open).with('./logs/logfilebucket/2013/02/combined.log', "w").and_return(combined_log)
+        File.should_receive(:open).ordered.with('./logs/logfilebucket/2013/02/combined.log', "w").and_return(combined_log)
+        File.should_receive(:open).ordered.with('./logs/logfilebucket/2013/02/01.log').and_return(StringIO.new)
+        File.should_receive(:open).ordered.with('./logs/logfilebucket/2013/02/02.log').and_return(StringIO.new)
+        File.should_receive(:open).ordered.with('./logs/logfilebucket/2013/02/03.log').and_return(StringIO.new)
+        File.should_receive(:open).ordered.with('./logs/logfilebucket/2013/02/04.log').and_return(StringIO.new)
+        File.should_receive(:open).ordered.with('./logs/logfilebucket/2013/02/05.log').and_return(StringIO.new)
+        File.should_receive(:open).ordered.with('./logs/logfilebucket/2013/02/06.log').and_return(StringIO.new)
+        File.should_receive(:open).ordered.with('./logs/logfilebucket/2013/02/07.log').and_return(StringIO.new)
+        File.should_receive(:open).ordered.with('./logs/logfilebucket/2013/02/08.log').and_return(StringIO.new)
+        File.should_receive(:open).ordered.with('./logs/logfilebucket/2013/02/09.log').and_return(StringIO.new)
+        File.should_receive(:open).ordered.with('./logs/logfilebucket/2013/02/10.log').and_return(StringIO.new)
+        File.should_receive(:open).ordered.with('./logs/logfilebucket/2013/02/11.log').and_return(StringIO.new)
+        File.should_receive(:open).ordered.with('./logs/logfilebucket/2013/02/12.log').and_return(StringIO.new)
+        Dir.should_receive(:glob).with('./logs/logfilebucket/2013/02/[0-9][0-9].log').and_return([
+          './logs/logfilebucket/2013/02/01.log',
+          './logs/logfilebucket/2013/02/02.log',
+          './logs/logfilebucket/2013/02/03.log',
+          './logs/logfilebucket/2013/02/07.log',
+          './logs/logfilebucket/2013/02/04.log',
+          './logs/logfilebucket/2013/02/05.log',
+          './logs/logfilebucket/2013/02/06.log',
+          './logs/logfilebucket/2013/02/08.log',
+          './logs/logfilebucket/2013/02/09.log',
+          './logs/logfilebucket/2013/02/10.log',
+          './logs/logfilebucket/2013/02/11.log',
+          './logs/logfilebucket/2013/02/12.log',
+        ])
         subject.combine_day_files #.should eql(['2013-01-01', '2013-02-01'])
       end
     end

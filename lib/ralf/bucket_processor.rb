@@ -25,7 +25,7 @@ class Ralf::BucketProcessor
       base_dir =        Ralf::Interpolation.interpolate([config[:output_dir],'[0-9][0-9].log'].join('/'), {:bucket => bucket.name, :date => date}, [:bucket])
       output_filename = Ralf::Interpolation.interpolate(config[:month_file], {:bucket => bucket.name, :date => date}, [:bucket])
       out = File.open(output_filename, "w")
-      Dir[base_dir].each do |f|
+      Dir.glob(base_dir).sort.each do |f|
         File.open(f).read.each do |line|
           out << line
         end
