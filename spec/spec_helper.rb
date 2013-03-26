@@ -10,3 +10,17 @@ RSpec.configure do |config|
   config.filter_run :focus
   config.order = 'random'
 end
+
+def capture(*streams)
+  require 'stringio'
+
+  streams.map! { |stream| stream.to_s }
+  begin
+    result = StringIO.new
+    streams.each { |stream| eval "$#{stream} = result" }
+    yield
+  ensure
+    streams.each { |stream| eval("$#{stream} = #{stream.upcase}") }
+  end
+  result.string
+end

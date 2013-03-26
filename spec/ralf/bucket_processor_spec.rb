@@ -69,7 +69,8 @@ describe Ralf::BucketProcessor do
       it "reads all files from range into memory and sort it by timestamp" do
         subject.merge([
           'spec/fixtures/2012-06-04-17-15-58-41BB059FD94A4EC7',
-          'spec/fixtures/2012-06-04-17-16-40-4E34CC5FF2B57639'
+          'spec/fixtures/2012-06-04-17-16-40-4E34CC5FF2B57639',
+          'spec/fixtures/2013-03-24-11-17-27-ACFA8172D5374531',
         ]).collect {|l| l[:timestamp].to_s}.should eql([
           "2012-06-03T16:34:26+00:00",
           "2012-06-03T16:34:26+00:00",

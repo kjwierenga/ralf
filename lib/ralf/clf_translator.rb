@@ -5,7 +5,7 @@ class Ralf::ClfTranslator
 
   attr :line
   attr_reader :owner, :bucket, :remote_ip, :request_id, :operation, :key, :request_uri, :http_status, :s3_error_code, :bytes_sent, :object_size, :total_time_in_ms, :turn_around_time_in_ms, :referrer, :user_agent, :request_version_id, :duration
-  attr_reader :options
+  attr_reader :options, :translate_successfull
 
   # options:
   #   :recalculate_partial_content => false (default)

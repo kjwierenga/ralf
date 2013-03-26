@@ -59,6 +59,27 @@ describe Ralf::ClfTranslator do
     it "converts #{aws_line} into #{clf_line}" do
       Ralf::ClfTranslator.new(aws_line).to_s.should eql(clf_line)
     end
+    it "sets translate_successfull to true" do
+      result = Ralf::ClfTranslator.new(aws_line)
+      result.translate_successfull.should be_true
+    end
+  end
+  context "faulty lines" do
+    before do
+      @aws_line = '2cf7e6b06335c0689c6d29163df5bb001c96870cd78609e3845f1ed76a632621 media.kerkdienstgemist.nl [24/Mar/2013:10:22:56 +0000] 77.168.122.24 2cf7e6b06335c0689c6d29163df5bb001c96870cd78609e3845f1ed76a632621 A5A6B08FB9342F4D REST.GET.OBJECT 10010160/2013-03-24-0930.mp3 "GET /10010160/2013-03-24-0930.mp3?Signature=75eBWlMvIpO357%2FqKLdn0sZRP08%3D&Expires=1364127776&AWSAccessKeyId=1VYKRTJ5FFKT5B6F4NR2 HTTP/1.1" 200 - 18547033 18547033 17344 58 "http://kerkdienstgemist.nl/mp3/recorder.php?id=452"" "Mozilla/5.0 (compatible; MSIE 9.0; Windows NT 6.1; WOW64; Trident/5.0)" -'
+    end
+    it "returns nil for invalid lines" do
+      Ralf::ClfTranslator.new(@aws_line).to_s.should be_nil
+    end
+    it "sets translate_successfull to false" do
+      Ralf::ClfTranslator.new(@aws_line).translate_successfull.should be_false
+    end
+    it "outputs the line to the log" do
+      output = capture(:stderr) {
+        Ralf::ClfTranslator.new(@aws_line).translate_successfull.should be_false
+      }
+      output.should match('# ERROR: ')
+    end
   end
   context "ignore clflines" do
     before do

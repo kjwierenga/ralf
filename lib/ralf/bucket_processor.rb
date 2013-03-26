@@ -63,7 +63,7 @@ class Ralf::BucketProcessor
       File.open(file_name) do |in_file|
         while (line = in_file.gets)
           translated = Ralf::ClfTranslator.new(line, config)
-          lines << {:timestamp => translated.timestamp, :string => translated.to_s}
+          lines << {:timestamp => translated.timestamp, :string => translated.to_s} if translated.translate_successfull
         end
       end
     end
