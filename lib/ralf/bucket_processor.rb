@@ -18,9 +18,11 @@ class Ralf::BucketProcessor
     all_loglines = merge(file_names_to_process)
     write_to_day_files(all_loglines)
     combine_day_files
+    debug("Done")
   end
 
   def combine_day_files
+    debug("Combine into month_file")
     covered_months.collect do |date|
       base_dir =        Ralf::Interpolation.interpolate([config[:output_dir],'[0-9][0-9].log'].join('/'), {:bucket => bucket.name, :date => date}, [:bucket])
       output_filename = Ralf::Interpolation.interpolate(config[:month_file], {:bucket => bucket.name, :date => date}, [:bucket])
