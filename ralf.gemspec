@@ -5,7 +5,7 @@ require 'ralf/version'
 
 Gem::Specification.new do |gem|
   gem.name          = "ralf"
-  gem.version       = Ralf::VERSION
+  gem.version       = [Ralf::Version, Ralf::Release].join('p')
   gem.authors       = ["Leon Berenschot"]
   gem.email         = ["leipeleon@gmail.com"]
   gem.description   = %q{Download and convert S3 logfiles into a CLF file per day}

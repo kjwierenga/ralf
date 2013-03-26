@@ -7,6 +7,9 @@ require 'ralf'
 # Bring OptionParser into the namespace
 require 'optparse'
 
+Version = Ralf::Version
+Release = Ralf::Release
+
 begin
   options = {
     :config_file => './ralf.conf',
